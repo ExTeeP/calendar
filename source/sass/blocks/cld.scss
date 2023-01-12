@@ -1,0 +1,247 @@
+.event-cldr {
+  margin: 200px auto;
+  display: flex;
+  width: 500px;
+}
+
+.cld-main {
+  border: 2px solid $color-neon-blue;
+  width: 100%;
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 700;
+  text-transform: uppercase;
+
+  @include vp-1023 {
+    font-size: 24px;
+    line-height: 29px;
+  }
+
+  @include vp-767 {
+    font-size: 16px;
+    line-height: 20px;
+  }
+}
+
+.cld-main a {
+  color: inherit;
+}
+
+.cld-datetime {
+  padding-bottom: 4px;
+  background-color: $color-neon-blue;
+  display: flex;
+  align-items: center;
+  position: relative;
+  color: $color-default-white;
+
+  @include vp-1023 {
+    padding-bottom: 0;
+  }
+
+  @include  vp-767 {
+    margin-bottom: 2px;
+  }
+}
+
+.cld-datetime .today {
+  margin: 3px auto 0;
+  text-align: center;
+  cursor: default;
+
+  @include vp-1023 {
+    margin-top: -6px;
+  }
+
+  @include vp-767 {
+    margin-top: 0;
+  }
+}
+
+.cld-nav {
+  position: relative;
+  padding: 10px;
+  display: inline-flex;
+  cursor: pointer;
+  transition: opacity $trans-default;
+
+  @include hover {
+    opacity: 0.8;
+  }
+
+  &.cld-rwd {
+    transform: rotate(-180deg);
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+
+    @include  vp-1023 {
+      width: 36px;
+      height: 36px;
+    }
+
+    @include vp-767 {
+      width: 20px;
+      height: 20px;
+    }
+  }
+}
+
+.cld-labels,
+.cld-days {
+  margin: 0;
+  padding-left: 0;
+}
+
+.cld-labels {
+  padding: 2px;
+  color: $color-default-white;
+  background-color: $color-default-black;
+
+  @include  vp-1023 {
+    padding: 10px 2px 13px;
+  }
+
+  @include  vp-767 {
+    margin-bottom: 1px;
+    padding: 8px 2px;
+  }
+}
+
+.cld-label,
+.cld-day {
+  display: inline-block;
+  margin: 6px 0 6px 18px;
+  width: calc(100% / 7 - (18px * 6 / 7));
+  text-align: center;
+  cursor: default;
+
+  @include vp-1023 {
+    margin: 4px 0 4px 9px;
+    width: calc(100% / 7 - (9px * 6 / 7));
+  }
+
+  @include  vp-767 {
+    margin: 1px 0 1px 2px;
+    width: calc(100% / 7 - (2px * 6 / 7));
+  }
+
+  &:nth-child(7n-6) {
+    margin-left: 0;
+  }
+}
+
+.cld-day.disableDay,
+.cld-day.nextMonth,
+.cld-day.prevMonth {
+  color: rgba($color-neon-blue, 0.2);
+}
+
+.cld-day {
+  &.eventday .cld-number {
+    color: $color-default-white;
+    background-color: $color-neon-blue;
+    cursor: pointer;
+    transition: opacity $trans-default;
+  }
+
+  &.eventday:hover {
+    .cld-number {
+      opacity: 0.8;
+    }
+
+    .cld-links {
+      display: flex;
+      opacity: 0;
+    }
+
+    &.is-active {
+      .cld-links {
+        opacity: 1;
+      }
+    }
+  }
+}
+
+.cld-day-inner {
+  position: relative;
+}
+
+.cld-number {
+  padding: 2px;
+
+  @include vp-1023 {
+    padding: 15.5px 2px;
+  }
+
+  @include vp-767 {
+    padding: 9px 2px;
+  }
+}
+
+.cld-links {
+  position: absolute;
+  width: 226px;
+  top: calc(100% + 13px);
+  left: 0;
+  padding: 9px 11px;
+  background-color: $color-default-white;
+  border: 2px solid $color-neon-blue;
+  z-index: 10;
+  display: none;
+  flex-direction: column;
+
+  &::before {
+    content: "";
+    display: block;
+    position: absolute;
+    top: -16px;
+    height: 16px;
+    right: -2px;
+    left: -2px;
+  }
+}
+
+.cld-title {
+  padding: 8px 0 6px;
+  text-align: left;
+  display: block;
+  font-size: 14px;
+  line-height: 17px;
+  border-bottom: 2px solid $color-neon-blue;
+
+  &:hover {
+    opacity: 0.8;
+  }
+
+  span {
+    display: block;
+    color: $color-neon-blue;
+  }
+
+  &:first-child {
+    padding-top: 0;
+  }
+
+  &:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+}
+
+.cld-sidebar {
+  .cld-nav.cld-rwd {
+    transform: rotate(-90deg);
+  }
+  .cld-nav.cld-fwd {
+    transform: rotate(90deg);
+  }
+}
+
+.cld-monthList {
+  margin: 0;
+  padding-left: 10px;
+  list-style: none;
+}
