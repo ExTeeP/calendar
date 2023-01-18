@@ -8,15 +8,15 @@ class Calendar {
     // массив с данными для отображения
     this.model = model;
     // Значения по умолчанию
-    this.options = {
+    this.options = Object.assign({
       // Разметка для иконки
-      navArrowIcon: '<svg height="15" width="15" viewBox="0 0 100 75"><polyline points="0,0 100,0 50,75" fill="currentColor"></polyline></svg>',
+      navArrowIconHTML: '<svg height="15" width="15" viewBox="0 0 100 75"><polyline points="0,0 100,0 50,75" fill="currentColor"></polyline></svg>',
       // показывать ли контролы навигации
       showNavArrows: true,
       // показывать предыдущие и предстоящие месяцы сбоку
       navVertical: false,
       // где отображать вертикальную навигацию, если она не находится в положении по умолчанию, принимает строку-селектор
-      navLocation: '',
+      navVerticalLocation: '',
       // отображать месяц в шапке с навигацией
       dateTimeShow: true,
       // где отображать месяц, если он не находится в положении по умолчанию, принимает строку-селектор
@@ -28,9 +28,7 @@ class Calendar {
       // Если нужно отображать год
       showYear: true,
       tooltipOffsetEdge: 20,
-    };
-    // склейка двух объектов опций
-    this.options = Object.assign(this.options, options);
+    }, options);
 
     this.today = new Date();
     this.selected = date || this.today;
@@ -70,7 +68,7 @@ class Calendar {
         this.monthsLocale = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
         this.weekLocale = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
         break;
-      case 'EN':
+      default:
         this.selected.firstDay = new Date(this.selected.year, (this.selected.month), 1).getDay();
         this.selected.lastDay = new Date(this.selected.year, (this.selected.month + 1), 0).getDay();
         this.monthsLocale = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -109,10 +107,14 @@ class CalendarLayout {
   }
 
   addSidebar() {
+    const activeSidebarElement = this.element.querySelector('.cld-sidebar');
+
+    if (activeSidebarElement) {
+      activeSidebarElement.remove();
+    }
+
     let sidebarElement = this._createElement({className: 'cld-sidebar'});
     let monthListElement = this._createElement({tagName: 'ul', className: 'cld-monthList'});
-    let prevElement;
-    let nextElement;
 
     for (let i = 0; i < this.calendar.monthsLocale.length - 3; i++) {
       const monthElement = this._createElement({tagName: 'li', className: 'cld-month'});
@@ -140,15 +142,15 @@ class CalendarLayout {
         monthElement.addEventListener('click', () => {
           this.changeCalendar(this.calendar, this.element, adj);
         });
-        monthElement.innerHTML += this.calendar.monthsLocale[n].substring(0, 3);
+        monthElement.innerHTML = this.calendar.monthsLocale[n].substring(0, 3);
 
         if (n === 0) {
           let yearElement = this._createElement({tagName: 'li', className: 'cld-year'});
 
           if (i < 5) {
-            yearElement.innerHTML += this.calendar.selected.year;
+            yearElement.innerHTML = this.calendar.selected.year;
           } else {
-            yearElement.innerHTML += this.calendar.selected.year + 1;
+            yearElement.innerHTML = this.calendar.selected.year + 1;
           }
 
           this._renderElement(monthListElement, yearElement);
@@ -161,18 +163,11 @@ class CalendarLayout {
     this._renderElement(sidebarElement, monthListElement);
 
     if (this.calendar.options.showNavArrows) {
-      prevElement = this._createElement({className: ['cld-rwd', 'cld-nav']});
-      nextElement = this._createElement({className: ['cld-fwd', 'cld-nav']});
-
-      prevElement.innerHTML = this.calendar.options.navArrowIcon;
-      nextElement.innerHTML = this.calendar.options.navArrowIcon;
-
-      this._renderElement(sidebarElement, prevElement, 'afterbegin');
-      this._renderElement(sidebarElement, nextElement);
+      this.addNavButtons(sidebarElement);
     }
 
-    if (this.calendar.options.navLocation) {
-      const locationElement = document.querySelector(this.calendar.options.navLocation);
+    if (this.calendar.options.navVerticalLocation) {
+      const locationElement = document.querySelector(this.calendar.options.navVerticalLocation);
 
       locationElement.innerHTML = '';
       this._renderElement(locationElement, sidebarElement);
@@ -184,11 +179,9 @@ class CalendarLayout {
   addDateTime() {
     let headerElement = this._createElement({className: 'cld-datetime'});
     let monthElement = this._createElement({className: 'today'});
-    let prevElement;
-    let nextElement;
 
     if (this.calendar.options.showYear) {
-      monthElement.innerText = this.calendar.monthsLocale[this.calendar.selected.month] + ', ' + this.calendar.selected.year;
+      monthElement.innerText = `${this.calendar.monthsLocale[this.calendar.selected.month]}, ${this.calendar.selected.year}`;
     } else {
       monthElement.innerText = this.calendar.monthsLocale[this.calendar.selected.month];
     }
@@ -196,14 +189,7 @@ class CalendarLayout {
     this._renderElement(headerElement, monthElement);
 
     if (this.calendar.options.showNavArrows && !this.calendar.options.navVertical) {
-      prevElement = this._createElement({className: ['cld-rwd', 'cld-nav']});
-      nextElement = this._createElement({className: ['cld-fwd', 'cld-nav']});
-
-      prevElement.innerHTML = this.calendar.options.navArrowIcon;
-      nextElement.innerHTML = this.calendar.options.navArrowIcon;
-
-      this._renderElement(headerElement, prevElement, 'afterbegin');
-      this._renderElement(headerElement, nextElement);
+      this.addNavButtons(headerElement);
     }
 
     if (this.calendar.options.datetimeLocation) {
@@ -325,18 +311,35 @@ class CalendarLayout {
         let toDate = new Date(this.calendar.selected.year, this.calendar.selected.month, i + 1);
 
         if (evDate.getTime() === toDate.getTime()) {
-          const a = this._createElement({tagName: 'a'});
-          const title = this._createElement({tagName: 'span', className: 'cld-title'});
+          let title = this._createElement({tagName: 'span', className: 'cld-title'});
 
           day.classList.add('eventday');
-          a.setAttribute('href', this.calendar.model[n].link);
-          a.innerHTML = this.calendar.model[n].title;
 
-          this._renderElement(title, a);
+          if (this.calendar.model[n].link) {
+            title = this._createElement({tagName: 'a', className: 'cld-title'});
+            title.setAttribute('href', this.calendar.model[n].link);
+          }
+
+          title.innerHTML = this.calendar.model[n].title;
+
           this._renderElement(events, title);
         }
       }
     }
+  }
+
+  addNavButtons(parent) {
+    const prevElement = this._createElement({tagName: 'button', className: ['cld-rwd', 'cld-nav']});
+    const nextElement = this._createElement({tagName: 'button', className: ['cld-fwd', 'cld-nav']});
+
+    prevElement.setAttribute('type', 'button');
+    nextElement.setAttribute('type', 'button');
+
+    prevElement.innerHTML = this.calendar.options.navArrowIconHTML;
+    nextElement.innerHTML = this.calendar.options.navArrowIconHTML;
+
+    this._renderElement(parent, prevElement, 'afterbegin');
+    this._renderElement(parent, nextElement);
   }
 
   createDayWrap(dayLabel) {
@@ -364,10 +367,6 @@ class CalendarLayout {
     this.mainSection = this._createElement({className: 'cld-main'});
     this._renderElement(this.element, this.mainSection);
 
-    if (this.calendar.options.navVertical) {
-      this.addSidebar();
-    }
-
     this.changeCalendar(this.calendar, this.element);
   }
 
@@ -384,6 +383,10 @@ class CalendarLayout {
 
     if (this.calendar.options.dateTimeShow) {
       this.addDateTime();
+    }
+
+    if (this.calendar.options.navVertical) {
+      this.addSidebar();
     }
 
     this.addLabels();
@@ -472,10 +475,12 @@ class CalendarLayout {
     const selector = props.className;
     const element = document.createElement(props.tagName || 'div');
 
-    if (Array.isArray(selector)) {
-      element.classList.add(...selector);
-    } else {
-      element.classList.add(selector);
+    if (selector) {
+      if (Array.isArray(selector)) {
+        element.classList.add(...selector);
+      } else {
+        element.classList.add(selector);
+      }
     }
 
     return element;
@@ -501,18 +506,21 @@ class CalendarLayout {
 
 class EventCalendar {
   constructor(element, settings = {}, data = []) {
-    this.element = element;
-    this.data = data;
+    if (element && typeof element === 'string') {
+      this.element = document.querySelector(element.trim());
+    } else if (element && element.nodeType) {
+      this.element = element;
+    } else {
+      throw new TypeError('Первый аргумент класса new EventCalendar должен быть Node-узлом или строкой с корректным CSS-селектором.');
+    }
+
     this.settings = settings;
+    this.data = data;
 
     this.init();
   }
 
   init() {
-    if (!this.element) {
-      return;
-    }
-
     const obj = new Calendar({model: this.data, options: this.settings});
     // eslint-disable-next-line no-new
     new CalendarLayout({calendar: obj, element: this.element});

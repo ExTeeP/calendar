@@ -34,6 +34,7 @@
   align-items: center;
   position: relative;
   color: $color-default-white;
+  user-select: none;
 
   @include vp-1023 {
     padding-bottom: 0;
@@ -117,6 +118,7 @@
   width: calc(100% / 7 - (18px * 6 / 7));
   text-align: center;
   cursor: default;
+  user-select: none;
 
   @include vp-1023 {
     margin: 4px 0 4px 9px;
@@ -192,6 +194,7 @@
   z-index: 10;
   display: none;
   flex-direction: column;
+  user-select: text;
 
   &::before {
     content: "";
