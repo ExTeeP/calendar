@@ -3,14 +3,15 @@ extends ../components/base/layout
 block variables
   - const title = "ProjectName" //- на страницах кроме главной используйте О нас — ProjectName
   - const wrapperMods = ""
-  - const hasHeader = true
+  - const hasHeader = false
   - const headerMods = ""
-  - const hasFooter = true
+  - const hasFooter = false
   - const footerMods = ""
   - const currentUrl = "index.html" //- для остальных страниц пишем пустую строку или индекс активного headerLinks
 
 block main
   main
-    .event-cldr(data-events-url="./data/events-date.json")
+    .container
+      .ecalendr(data-events-url="./data/events-date.json")
 
 block modals

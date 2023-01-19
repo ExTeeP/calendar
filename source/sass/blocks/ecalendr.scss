@@ -1,0 +1,309 @@
+.ecalendr {
+  $b: &;
+
+  margin: 200px auto;
+  display: flex;
+  max-width: 500px;
+  width: 100%;
+  min-width: 280px;
+
+  &__main {
+    border: 2px solid $color-neon-blue;
+    width: 100%;
+    font-size: 20px;
+    line-height: 24px;
+    font-weight: 700;
+    text-transform: uppercase;
+    display: flex;
+    flex-direction: column;
+
+    @include vp-767 {
+      font-size: 16px;
+      line-height: 20px;
+    }
+  }
+
+  &__header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    position: relative;
+    color: $color-default-white;
+    background-color: $color-neon-blue;
+    user-select: none;
+  }
+
+  &__weekdays,
+  &__days {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__weekdays {
+    flex-shrink: 0;
+    color: $color-default-white;
+    background-color: $color-default-black;
+  }
+
+  &__days {
+    flex-grow: 1;
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  &__nav-btn {
+    padding: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    background-color: $color-transparent;
+    border: none;
+    cursor: pointer;
+
+    @include hover {
+      svg {
+        color: $color-neon-blue;
+      }
+    }
+
+    svg {
+      width: 20px;
+      height: 20px;
+      color: $color-default-white;
+      transition: color $trans-default;
+
+      @include vp-767 {
+        width: 16px;
+        height: 16px;
+      }
+    }
+
+    #{$b}__header  & {
+      &--prev {
+        svg {
+          transform: rotate(90deg);
+        }
+      }
+
+      &--next {
+        svg {
+          transform: rotate(-90deg);
+        }
+      }
+    }
+
+    #{$b}__sidebar & {
+      width: 100%;
+
+      &--prev {
+        svg {
+          transform: rotate(-180deg);
+        }
+      }
+
+      &--next {
+        svg {
+          transform: rotate(0deg);
+        }
+      }
+    }
+  }
+
+  &__current-month {
+    margin: 0 auto;
+    text-align: center;
+    cursor: default;
+  }
+
+  &__month {
+    #{$b}__header & {}
+
+    #{$b}__header & + #{$b}__year {
+      padding-left: 10px;
+    }
+
+    #{$b}__sidebar & {
+      width: 100%;
+      flex-grow: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      line-height: 30px;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+      transition: color $trans-default;
+
+      @include vp-767 {
+        font-size: 16px;
+        line-height: 20px;
+      }
+
+      @include hover-focus {
+        color: $color-neon-blue;
+      }
+
+      &--current {
+        background-color: $color-default-white;
+        color: $color-default-black;
+      }
+    }
+  }
+
+  &__year {}
+
+  &__weekday,
+  &__day {
+    --left-offset: 18px;
+
+    margin: 6px 0 6px var(--left-offset);
+    width: calc(100% / 7 - (var(--left-offset) * 6 / 7));
+    display: inline-flex;
+    cursor: default;
+    user-select: none;
+
+    &:nth-child(7n-6) {
+      margin-left: 0;
+    }
+  }
+
+  &__weekday {
+    padding: 4px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__day {
+    position: relative;
+
+    &--disabled {
+      #{$b}__number {
+        color: rgba($color-neon-blue, 0.2);
+      }
+    }
+
+    &--prev,
+    &--next {
+      #{$b}__number {
+        color: rgba($color-neon-blue, 0.2);
+        background-color: rgba(#c0c0c0, 0.3);
+      }
+    }
+
+    &--event {
+      @include hover-focus {
+        .ecalendr__number {
+          opacity: 0.8;
+        }
+
+        .ecalendr__events {
+          display: flex;
+          opacity: 1;
+        }
+      }
+
+      #{$b}__number {
+        color: $color-default-white;
+        background-color: $color-neon-blue;
+        cursor: pointer;
+        transition: opacity $trans-default;
+      }
+    }
+  }
+
+  &__day-inner {
+    width: 100%;
+  }
+
+  &__number {
+    padding: 4px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__events {
+    --bottom-offset: 12px;
+    --border-width: 2px;
+
+    position: absolute;
+    width: 226px;
+    top: calc(100% + var(--bottom-offset));
+    left: 0;
+    padding: 9px 11px;
+    background-color: $color-default-white;
+    border: var(--border-width) solid $color-neon-blue;
+    z-index: 10;
+    display: none;
+    flex-direction: column;
+    user-select: text;
+
+    // Элемент увеличивающий область для ховера, чтобы избежать
+    // его потери при переходе от элемента дня к элементу с событиями
+    &::before {
+      content: "";
+      display: block;
+      position: absolute;
+      top: calc((var(--border-width) + var(--bottom-offset)) * -1);
+      height: calc(var(--border-width) + var(--bottom-offset));
+      right: calc(var(--border-width) * -1);
+      left: calc(var(--border-width) * -1);
+    }
+  }
+
+  &__event {
+    padding: 8px 0 6px;
+    text-align: left;
+    display: block;
+    font-size: 14px;
+    line-height: 17px;
+    color: inherit;
+    border-bottom: 2px solid $color-neon-blue;
+    transition: opacity $trans-default;
+
+    @include hover {
+      opacity: 0.8;
+    }
+
+    span {
+      display: block;
+      color: $color-neon-blue;
+    }
+
+    &:first-child {
+      padding-top: 0;
+    }
+
+    &:last-child {
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+  }
+
+  // ------ Sidebar ------
+  &__sidebar {
+    order: -1;
+    width: 15%;
+    min-width: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: $color-default-white;
+    background-color: $color-default-black;
+    border: 2px solid $color-neon-blue;
+    border-right: none;
+  }
+
+  &__months {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    flex-grow: 1;
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
