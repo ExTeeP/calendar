@@ -1,3 +1,5 @@
+@charset "UTF-8";
+
 /* stylelint-disable */
 
 /*! normalize.css v8.0.1 | MIT License | github.com/necolas/normalize.css */
@@ -1320,19 +1322,12 @@ button,
   color: #15ab07;
 }
 
-.ecalendr {
-  margin: 200px auto;
-  display: -webkit-box;
-  display: -ms-flexbox;
-  display: flex;
-  max-width: 500px;
-  width: 100%;
-  min-width: 280px;
+div[data-ecalendr] .ecalendr {
+  margin: 150px auto;
+  width: 700px;
 }
 
-.ecalendr__main {
-  border: 2px solid #2c39f2;
-  width: 100%;
+.ecalendr {
   font-size: 20px;
   line-height: 24px;
   font-weight: 700;
@@ -1347,6 +1342,10 @@ button,
 }
 
 .ecalendr__header {
+  width: 100%;
+  -webkit-box-flex: 0;
+  -ms-flex-positive: 0;
+  flex-grow: 0;
   -ms-flex-negative: 0;
   flex-shrink: 0;
   display: -webkit-box;
@@ -1364,6 +1363,29 @@ button,
   user-select: none;
 }
 
+.ecalendr__body {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-flex: 1;
+  -ms-flex-positive: 1;
+  flex-grow: 1;
+}
+
+.ecalendr__main {
+  -webkit-box-flex: 1;
+  -ms-flex-positive: 1;
+  flex-grow: 1;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  border: 2px solid #2c39f2;
+}
+
 .ecalendr__weekdays,
 .ecalendr__days {
   margin: 0;
@@ -1372,6 +1394,7 @@ button,
 }
 
 .ecalendr__weekdays {
+  padding: 4px 0;
   -ms-flex-negative: 0;
   flex-shrink: 0;
   color: #ffffff;
@@ -1404,24 +1427,41 @@ button,
   background-color: rgba(255, 255, 255, 0);
   border: none;
   cursor: pointer;
-}
-
-.ecalendr__nav-btn svg {
-  width: 20px;
-  height: 20px;
   color: #ffffff;
   -webkit-transition: color 0.3s ease;
   -o-transition: color 0.3s ease;
   transition: color 0.3s ease;
 }
 
+.ecalendr__nav-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.ecalendr__header .ecalendr__nav-btn.focus-visible:focus {
+  color: #000000;
+}
+
+.ecalendr__header .ecalendr__nav-btn--prev {
+  margin-right: auto;
+}
+
 .ecalendr__header .ecalendr__nav-btn--prev svg {
+  -webkit-box-ordinal-group: 0;
+  -ms-flex-order: -1;
+  order: -1;
+  margin-right: 5px;
   -webkit-transform: rotate(90deg);
   -ms-transform: rotate(90deg);
   transform: rotate(90deg);
 }
 
+.ecalendr__header .ecalendr__nav-btn--next {
+  margin-left: auto;
+}
+
 .ecalendr__header .ecalendr__nav-btn--next svg {
+  margin-left: 5px;
   -webkit-transform: rotate(-90deg);
   -ms-transform: rotate(-90deg);
   transform: rotate(-90deg);
@@ -1429,6 +1469,10 @@ button,
 
 .ecalendr__sidebar .ecalendr__nav-btn {
   width: 100%;
+}
+
+.ecalendr__sidebar .ecalendr__nav-btn.focus-visible:focus {
+  color: #2c39f2;
 }
 
 .ecalendr__sidebar .ecalendr__nav-btn--prev svg {
@@ -1443,6 +1487,11 @@ button,
   transform: rotate(0deg);
 }
 
+.ecalendr__nav-btn-text {
+  font-size: 16px;
+  line-height: 20px;
+}
+
 .ecalendr__current-month {
   margin: 0 auto;
   text-align: center;
@@ -1454,6 +1503,7 @@ button,
 }
 
 .ecalendr__sidebar .ecalendr__month {
+  padding: 5px 30px;
   width: 100%;
   -webkit-box-flex: 1;
   -ms-flex-positive: 1;
@@ -1472,9 +1522,9 @@ button,
   font-weight: 700;
   text-align: center;
   cursor: pointer;
-  -webkit-transition: color 0.3s ease;
-  -o-transition: color 0.3s ease;
-  transition: color 0.3s ease;
+  -webkit-transition: color 0.3s ease, background-color 0.3s ease;
+  -o-transition: color 0.3s ease, background-color 0.3s ease;
+  transition: color 0.3s ease, background-color 0.3s ease;
 }
 
 .ecalendr__sidebar .ecalendr__month.focus-visible:focus {
@@ -1482,14 +1532,39 @@ button,
 }
 
 .ecalendr__sidebar .ecalendr__month--current {
-  background-color: #ffffff;
+  color: #ffffff;
+  background-color: #2c39f2;
+}
+
+.ecalendr__sidebar .ecalendr__month--current.focus-visible:focus {
   color: #000000;
+  background-color: #ffffff;
+}
+
+.ecalendr__sidebar .ecalendr__month--selected {
+  color: #000000;
+  background-color: #ffffff;
+}
+
+.ecalendr__sidebar .ecalendr__month--event {
+  position: relative;
+}
+
+.ecalendr__sidebar .ecalendr__month--event::before {
+  content: "·";
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 5px;
+  font-size: 40px;
+  -webkit-transform: translateY(-50%);
+  -ms-transform: translateY(-50%);
+  transform: translateY(-50%);
 }
 
 .ecalendr__weekday,
 .ecalendr__day {
   --left-offset: 18px;
-  margin: 6px 0 6px var(--left-offset);
   width: calc(14.2857142857% - var(--left-offset) * 6 / 7);
   display: -webkit-inline-box;
   display: -ms-inline-flexbox;
@@ -1507,6 +1582,7 @@ button,
 }
 
 .ecalendr__weekday {
+  margin: 0 0 0 var(--left-offset);
   padding: 4px;
   -webkit-box-align: center;
   -ms-flex-align: center;
@@ -1518,6 +1594,7 @@ button,
 
 .ecalendr__day {
   position: relative;
+  margin: 6px 0 6px var(--left-offset);
 }
 
 .ecalendr__day--disabled .ecalendr__number {
@@ -1528,6 +1605,27 @@ button,
 .ecalendr__day--next .ecalendr__number {
   color: rgba(44, 57, 242, 0.2);
   background-color: rgba(192, 192, 192, 0.3);
+}
+
+.ecalendr__day--today {
+  color: #ffffff;
+  background-color: #2b6aff;
+}
+
+.ecalendr__day--today .ecalendr__number {
+  padding: 2px;
+  border: 2px solid #000000;
+}
+
+.ecalendr__day--event:focus-within .ecalendr__number {
+  opacity: 0.8;
+}
+
+.ecalendr__day--event:focus-within .ecalendr__events {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  opacity: 1;
 }
 
 .ecalendr__day--event.focus-visible:focus .ecalendr__number {
@@ -1613,6 +1711,10 @@ button,
   transition: opacity 0.3s ease;
 }
 
+.ecalendr__event.focus-visible:focus {
+  opacity: 0.8;
+}
+
 .ecalendr__event span {
   display: block;
   color: #2c39f2;
@@ -1631,8 +1733,6 @@ button,
   -webkit-box-ordinal-group: 0;
   -ms-flex-order: -1;
   order: -1;
-  width: 15%;
-  min-width: 60px;
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
@@ -1652,13 +1752,18 @@ button,
 .ecalendr__months {
   margin: 0;
   padding: 0;
-  list-style: none;
+  width: 100%;
   -webkit-box-flex: 1;
   -ms-flex-positive: 1;
   flex-grow: 1;
+  list-style: none;
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -ms-flex-direction: column;
+  flex-direction: column;
   -ms-flex-wrap: wrap;
   flex-wrap: wrap;
 }
@@ -1734,7 +1839,7 @@ button,
     width: 100%;
   }
 
-  .ecalendr__main {
+  .ecalendr {
     font-size: 16px;
     line-height: 20px;
   }
@@ -1747,6 +1852,10 @@ button,
   .ecalendr__sidebar .ecalendr__month {
     font-size: 16px;
     line-height: 20px;
+  }
+
+  .ecalendr__sidebar .ecalendr__month--event::before {
+    left: -2px;
   }
 }
 
@@ -1826,12 +1935,21 @@ button,
     background-color: rgba(0, 0, 0, 0.4);
   }
 
-  .ecalendr__nav-btn:hover:not(.focus-visible) svg {
+  .ecalendr__header .ecalendr__nav-btn:hover:not(.focus-visible) {
+    color: #000000;
+  }
+
+  .ecalendr__sidebar .ecalendr__nav-btn:hover:not(.focus-visible) {
     color: #2c39f2;
   }
 
   .ecalendr__sidebar .ecalendr__month:hover:not(.focus-visible) {
     color: #2c39f2;
+  }
+
+  .ecalendr__sidebar .ecalendr__month--current:hover:not(.focus-visible) {
+    color: #000000;
+    background-color: #ffffff;
   }
 
   .ecalendr__day--event:hover:not(.focus-visible) .ecalendr__number {
