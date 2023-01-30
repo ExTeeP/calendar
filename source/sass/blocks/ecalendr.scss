@@ -1,29 +1,32 @@
+//.container {
+//  padding: 0;
+//}
+
+div[data-ecalendr] {
+  .ecalendr {
+    margin: 150px auto;
+    width: 700px;
+  }
+}
+
 .ecalendr {
   $b: &;
 
-  margin: 200px auto;
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 700;
+  text-transform: uppercase;
   display: flex;
-  max-width: 500px;
-  width: 100%;
-  min-width: 280px;
+  flex-direction: column;
 
-  &__main {
-    border: 2px solid $color-neon-blue;
-    width: 100%;
-    font-size: 20px;
-    line-height: 24px;
-    font-weight: 700;
-    text-transform: uppercase;
-    display: flex;
-    flex-direction: column;
-
-    @include vp-767 {
-      font-size: 16px;
-      line-height: 20px;
-    }
+  @include vp-767 {
+    font-size: 16px;
+    line-height: 20px;
   }
 
   &__header {
+    width: 100%;
+    flex-grow: 0;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -31,6 +34,18 @@
     color: $color-default-white;
     background-color: $color-neon-blue;
     user-select: none;
+  }
+
+  &__body {
+    display: flex;
+    flex-grow: 1;
+  }
+
+  &__main {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    border: 2px solid $color-neon-blue;
   }
 
   &__weekdays,
@@ -41,6 +56,7 @@
   }
 
   &__weekdays {
+    padding: 4px 0;
     flex-shrink: 0;
     color: $color-default-white;
     background-color: $color-default-black;
@@ -61,18 +77,12 @@
     background-color: $color-transparent;
     border: none;
     cursor: pointer;
-
-    @include hover {
-      svg {
-        color: $color-neon-blue;
-      }
-    }
+    color: $color-default-white;
+    transition: color $trans-default;
 
     svg {
       width: 20px;
       height: 20px;
-      color: $color-default-white;
-      transition: color $trans-default;
 
       @include vp-767 {
         width: 16px;
@@ -81,14 +91,25 @@
     }
 
     #{$b}__header  & {
+      @include hover-focus {
+        color: $color-default-black;
+      }
+
       &--prev {
+        margin-right: auto;
+
         svg {
+          order: -1;
+          margin-right: 5px;
           transform: rotate(90deg);
         }
       }
 
       &--next {
+        margin-left: auto;
+
         svg {
+          margin-left: 5px;
           transform: rotate(-90deg);
         }
       }
@@ -96,6 +117,10 @@
 
     #{$b}__sidebar & {
       width: 100%;
+
+      @include hover-focus {
+        color: $color-neon-blue;
+      }
 
       &--prev {
         svg {
@@ -109,6 +134,11 @@
         }
       }
     }
+  }
+
+  &__nav-btn-text {
+    font-size: 16px;
+    line-height: 20px;
   }
 
   &__current-month {
@@ -125,6 +155,7 @@
     }
 
     #{$b}__sidebar & {
+      padding: 5px 30px;
       width: 100%;
       flex-grow: 1;
       display: flex;
@@ -135,7 +166,7 @@
       font-weight: 700;
       text-align: center;
       cursor: pointer;
-      transition: color $trans-default;
+      transition: color $trans-default, background-color $trans-default;
 
       @include vp-767 {
         font-size: 16px;
@@ -147,8 +178,36 @@
       }
 
       &--current {
-        background-color: $color-default-white;
+        color: $color-default-white;
+        background-color: $color-neon-blue;
+
+        @include hover-focus {
+          color: $color-default-black;
+          background-color: $color-default-white;
+        }
+      }
+
+      &--selected {
         color: $color-default-black;
+        background-color: $color-default-white;
+      }
+
+      &--event {
+        position: relative;
+
+        &::before {
+          content: '\00B7';
+          display: block;
+          position: absolute;
+          top: 50%;
+          left: 5px;
+          font-size: 40px;
+          transform: translateY(-50%);
+
+          @include vp-767 {
+            left: -2px;
+          }
+        }
       }
     }
   }
@@ -159,7 +218,6 @@
   &__day {
     --left-offset: 18px;
 
-    margin: 6px 0 6px var(--left-offset);
     width: calc(100% / 7 - (var(--left-offset) * 6 / 7));
     display: inline-flex;
     cursor: default;
@@ -171,6 +229,7 @@
   }
 
   &__weekday {
+    margin: 0 0 0 var(--left-offset);
     padding: 4px;
     align-items: center;
     justify-content: center;
@@ -178,6 +237,7 @@
 
   &__day {
     position: relative;
+    margin: 6px 0 6px var(--left-offset);
 
     &--disabled {
       #{$b}__number {
@@ -193,7 +253,28 @@
       }
     }
 
+    &--today {
+      color: $color-default-white;
+      background-color: #2b6aff;
+
+      #{$b}__number {
+        padding: 2px;
+        border: 2px solid $color-default-black;
+      }
+    }
+
     &--event {
+      &:focus-within {
+        .ecalendr__number {
+          opacity: 0.8;
+        }
+
+        .ecalendr__events {
+          display: flex;
+          opacity: 1;
+        }
+      }
+
       @include hover-focus {
         .ecalendr__number {
           opacity: 0.8;
@@ -265,7 +346,7 @@
     border-bottom: 2px solid $color-neon-blue;
     transition: opacity $trans-default;
 
-    @include hover {
+    @include hover-focus {
       opacity: 0.8;
     }
 
@@ -287,8 +368,6 @@
   // ------ Sidebar ------
   &__sidebar {
     order: -1;
-    width: 15%;
-    min-width: 60px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -301,9 +380,11 @@
   &__months {
     margin: 0;
     padding: 0;
-    list-style: none;
+    width: 100%;
     flex-grow: 1;
+    list-style: none;
     display: flex;
+    flex-direction: column;
     flex-wrap: wrap;
   }
 }

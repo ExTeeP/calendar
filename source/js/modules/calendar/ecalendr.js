@@ -11,25 +11,58 @@ class Calendar {
     this.options = Object.assign({
       // Разметка для иконки
       navArrowIconHTML: '<svg height="15" width="15" viewBox="0 0 100 75"><polyline points="0,0 100,0 50,75" fill="currentColor"></polyline></svg>',
-      // показывать ли контролы навигации
-      showNavArrows: true,
-      // показывать предыдущие и предстоящие месяцы сбоку
-      navVertical: true,
-      // отображать месяц в шапке с навигацией
-      showHeader: true,
+      // Отобразить шапку
+      header: true,
+      // Отобразить месяцы сбоку
+      sidebar: true,
+      // Отобразить навигацию
+      navigation: true,
       // Локализация
       locale: 'RU',
-      // Если нужно отображать год
-      showHeaderYear: true,
-      // Если нужно отображать месяц
-      showHeaderMonth: true,
       // Горизонтальный отступ от края области просмотра у тултипа
       tooltipOffsetFromEdge: 20,
       // Добавляет класс is-hover при наведении на день с событием(возможно будет нужно для доп. стилизации и тд.)
-      addActiveClassOnHoverEvent: true,
+      addActiveClassOnHoverEvent: false,
       // Добавляет класс is-active при клике на день с событием(возможно будет нужно для доп. стилизации и тд.)
-      addActiveClassOnClickEvent: true,
+      addActiveClassOnClickEvent: false,
     }, options);
+
+    if ((this.options.header && typeof this.options.header === 'object') || Boolean(this.options.header)) {
+      this.options.header = Object.assign({
+        // Если нужно отображать год
+        showYear: true,
+        // Если нужно отображать месяц
+        showMonth: true,
+        // показывать ли контролы навигации
+        showNavigation: true,
+        // второе расположение для шапки
+        secondPosition: false,
+      }, options.header);
+    }
+
+    if ((this.options.sidebar && typeof this.options.sidebar === 'object') || Boolean(this.options.sidebar)) {
+      this.options.sidebar = Object.assign({
+        // короткая запись месяца (первые 3 буквы)
+        shortMonthLabel: false,
+        // показывать ли контролы навигации
+        showNavigation: false,
+      }, options.sidebar);
+    }
+
+    if ((this.options.navigation && typeof this.options.navigation === 'object') || Boolean(this.options.navigation)) {
+      this.options.navigation = Object.assign({
+        prev: {
+          arialabel: 'Предыдущий месяц',
+          text: 'Предыдущий месяц',
+          icon: '<svg height="15" width="15" viewBox="0 0 100 75"><polyline points="0,0 100,0 50,75" fill="currentColor"></polyline></svg>',
+        },
+        next: {
+          arialabel: 'Следующий месяц',
+          text: 'Следующий месяц',
+          icon: '<svg height="15" width="15" viewBox="0 0 100 75"><polyline points="0,0 100,0 50,75" fill="currentColor"></polyline></svg>',
+        },
+      }, options.navigation);
+    }
 
     this.today = new Date();
     this.selected = date || this.today;
@@ -82,10 +115,12 @@ class CalendarLayout {
     this.element = element;
     this.adjuster = adjuster;
     this.dataLoaded = false;
+    this.currentMonths = [];
 
     this.onMouseOver = this.onMouseOver.bind(this);
     this.onMouseOut = this.onMouseOut.bind(this);
     this.onClick = this.onClick.bind(this);
+    this.onSidebarMonthClick = this.onSidebarMonthClick.bind(this);
     this.onLoadEvents = this.onLoadEvents.bind(this);
     this.init();
   }
@@ -103,71 +138,127 @@ class CalendarLayout {
     this.element.addEventListener('loadDataSuccess', this.onLoadEvents);
   }
 
-  addSidebar() {
+  addSidebar(isYearChange) {
     const activeSidebarElement = this.element.querySelector('.ecalendr__sidebar');
 
-    if (activeSidebarElement) {
-      activeSidebarElement.remove();
+    if (activeSidebarElement && !isYearChange) {
+      // переключение месяца
+      const prevSelectedMonth = activeSidebarElement.querySelector('.ecalendr__month--selected');
+      const newSelectedMonth = activeSidebarElement.querySelector(`[data-idx='${this.calendar.selected.month}']`);
+
+      if (prevSelectedMonth !== newSelectedMonth) {
+        prevSelectedMonth.classList.remove('ecalendr__month--selected');
+        newSelectedMonth.classList.add('ecalendr__month--selected');
+      }
+      return;
+    } else if (activeSidebarElement && isYearChange) {
+      // смена года в сайдбаре
+      this.currentMonths = [];
+      this.calendar.monthsLocale.forEach((label, i) => {
+        const monthElement = activeSidebarElement.querySelector(`[data-idx='${i}']`);
+        const eventMonths = document.querySelectorAll('.ecalendr__month--event');
+        eventMonths.forEach((el) => {
+          el.removeAttribute('title');
+          el.classList.remove('ecalendr__month--event');
+        });
+
+        this.currentMonths.push({
+          date: new Date(this.calendar.selected.year, i),
+          label,
+          element: monthElement,
+        });
+
+        if (i === this.calendar.today.getMonth() && this.calendar.selected.year === this.calendar.today.year) {
+          monthElement.classList.add('ecalendr__month--current');
+        } else {
+          monthElement.classList.remove('ecalendr__month--current');
+        }
+      });
+
+      if (this.dataLoaded) {
+        this.addSidebarEvents();
+      }
+      return;
     }
+
+    this.parent.classList.add('ecalendr--has-sidebar');
 
     let sidebarElement = this._createElement({className: 'ecalendr__sidebar'});
     let monthListElement = this._createElement({tagName: 'ul', className: 'ecalendr__months'});
 
-    for (let i = 0; i < this.calendar.monthsLocale.length - 1; i++) {
+    this.calendar.monthsLocale.forEach((label, i) => {
       const monthElement = this._createElement({tagName: 'li', className: 'ecalendr__month'});
+      monthElement.setAttribute('data-idx', i);
+      monthElement.setAttribute('tabindex', '0');
 
-      let n = i - (5 - this.calendar.selected.month);
-      // Account for overflowing month values
-      if (n < 0) {
-        n += 12;
-      } else if (n > 11) {
-        n -= 12;
+      this.currentMonths.push({
+        date: new Date(this.calendar.selected.year, i),
+        label,
+        element: monthElement,
+      });
+
+      if (this.calendar.options.sidebar.shortMonthLabel) {
+        monthElement.innerHTML = `${label.substring(0, 3)}`;
+      } else {
+        monthElement.innerHTML = `${label}`;
       }
 
-      if (i < 5) {
-        monthElement.classList.add('ecalendr__month--prev');
-      } else if (i > 5) {
-        monthElement.classList.add('ecalendr__month--next');
-      } else {
+      if (i === this.calendar.today.getMonth() && this.calendar.selected.year === this.calendar.today.year) {
         monthElement.classList.add('ecalendr__month--current');
       }
 
-      let adj = (i - 5);
-      monthElement.addEventListener('click', () => {
-        this.changeCalendar(this.calendar, this.element, adj);
-      });
-      monthElement.innerHTML = this.calendar.monthsLocale[n].substring(0, 3);
-
-      // Сегодняшний месяц
-      // if (i === this.calendar.today.getMonth() && this.calendar.selected.month === this.calendar.today.month && this.calendar.selected.year === this.calendar.today.year) {
-      //   monthElement.classList.add('ecalendr__month--today');
-      // }
+      if (i === this.calendar.selected.month) {
+        monthElement.classList.add('ecalendr__month--selected');
+      }
 
       this._renderElement(monthListElement, monthElement);
-    }
+    });
+
+    sidebarElement.addEventListener('click', this.onSidebarMonthClick);
 
     this._renderElement(sidebarElement, monthListElement);
 
-    if (this.calendar.options.showNavArrows) {
+    if (this.calendar.options.sidebar.showNavigation && this.calendar.options.navigation) {
       this.addNavButtons(sidebarElement);
     }
 
-    this._renderElement(this.element, sidebarElement);
+    this._renderElement(this.bodySection, sidebarElement);
+  }
+
+  addNavigation() {
+    const headerElement = this._createElement({className: 'ecalendr__header'});
+    this.addNavButtons(headerElement);
+    this._renderElement(this.mainSection, headerElement);
   }
 
   addHeader() {
-    const headerElement = this._createElement({className: 'ecalendr__header'});
+    let headerElement = this.element.querySelector('.ecalendr__header');
+    let monthLabelElement = this.element.querySelector('.ecalendr__month');
+    let yearLabelElement = this.element.querySelector('.ecalendr__year');
+
+    if (headerElement) {
+      if (monthLabelElement && this.calendar.options.header.showMonth) {
+        monthLabelElement.innerText = this.calendar.monthsLocale[this.calendar.selected.month];
+      }
+
+      if (yearLabelElement && this.calendar.options.header.showYear) {
+        yearLabelElement.innerText = this.calendar.selected.year;
+      }
+      return;
+    }
+
+    headerElement = this._createElement({className: 'ecalendr__header'});
     const monthElement = this._createElement({className: 'ecalendr__current-month'});
 
-    if (this.calendar.options.showHeaderMonth) {
-      const monthLabelElement = this._createElement({tagName: 'span', className: 'ecalendr__month'});
+    if (this.calendar.options.header.showMonth) {
+      monthLabelElement = this._createElement({tagName: 'span', className: 'ecalendr__month'});
 
       monthLabelElement.innerText = this.calendar.monthsLocale[this.calendar.selected.month];
       this._renderElement(monthElement, monthLabelElement);
     }
 
-    if (this.calendar.options.showHeaderYear) {
-      const yearLabelElement = this._createElement({tagName: 'span', className: 'ecalendr__year'});
+    if (this.calendar.options.header.showYear) {
+      yearLabelElement = this._createElement({tagName: 'span', className: 'ecalendr__year'});
 
       yearLabelElement.innerText = this.calendar.selected.year;
       this._renderElement(monthElement, yearLabelElement);
@@ -175,11 +266,15 @@ class CalendarLayout {
 
     this._renderElement(headerElement, monthElement);
 
-    if (this.calendar.options.showNavArrows && !this.calendar.options.navVertical) {
+    if (this.calendar.options.header.showNavigation && this.calendar.options.navigation) {
       this.addNavButtons(headerElement);
     }
 
-    this._renderElement(this.mainSection, headerElement);
+    if (this.calendar.options.header.secondPosition) {
+      this._renderElement(this.mainSection, headerElement, 'afterbegin');
+    } else {
+      this._renderElement(this.parent, headerElement, 'afterbegin');
+    }
   }
 
   addWeekdays() {
@@ -196,7 +291,7 @@ class CalendarLayout {
   }
 
   addDays() {
-    const daysListElement = this._createElement({tagName: 'ul', className: 'ecalendr__days'});
+    this.daysListElement = this._createElement({tagName: 'ul', className: 'ecalendr__days'});
     let dayItemElement;
     let dayInnerLayout;
 
@@ -218,7 +313,7 @@ class CalendarLayout {
 
       dayInnerLayout = this.createDayWrap((this.calendar.prev.days - this.calendar.selected.firstDay) + (i + 1));
       this._renderElement(dayItemElement, dayInnerLayout);
-      this._renderElement(daysListElement, dayItemElement);
+      this._renderElement(this.daysListElement, dayItemElement);
     }
 
     // Дни текущего месяца
@@ -237,14 +332,14 @@ class CalendarLayout {
         dayItemElement.classList.add('ecalendr__day--today');
       }
 
-      this._renderElement(daysListElement, dayItemElement);
+      this._renderElement(this.daysListElement, dayItemElement);
     }
 
     // Дни следующего месяца
     let extraDaysCount = 13;
-    if (daysListElement.children.length > 35) {
+    if (this.daysListElement.children.length > 35) {
       extraDaysCount = 6;
-    } else if (daysListElement.children.length < 29) {
+    } else if (this.daysListElement.children.length < 29) {
       extraDaysCount = 20;
     }
 
@@ -257,12 +352,12 @@ class CalendarLayout {
 
       dayInnerLayout = this.createDayWrap(i + 1);
       this._renderElement(dayItemElement, dayInnerLayout);
-      this._renderElement(daysListElement, dayItemElement);
+      this._renderElement(this.daysListElement, dayItemElement);
     }
-    this._renderElement(this.mainSection, daysListElement);
+    this._renderElement(this.mainSection, this.daysListElement);
   }
 
-  addEvents() {
+  addDayEvents() {
     // Добавляет события для текущего месяца
     let currentDays = document.querySelectorAll('.ecalendr__day.ecalendr__day--current');
     let events;
@@ -285,15 +380,38 @@ class CalendarLayout {
           let eventElement = this._createElement({tagName: 'span', className: 'ecalendr__event'});
 
           day.classList.add('ecalendr__day--event');
+          day.setAttribute('tabindex', '0');
 
-          if (this.calendar.model[n].link) {
+          if (this.calendar.model[n].url) {
             eventElement = this._createElement({tagName: 'a', className: 'ecalendr__event'});
-            eventElement.setAttribute('href', this.calendar.model[n].link);
+            eventElement.setAttribute('href', this.calendar.model[n].url);
           }
 
           eventElement.innerHTML = this.calendar.model[n].content;
 
           this._renderElement(events, eventElement);
+        }
+      }
+    }
+  }
+
+  addSidebarEvents() {
+    // Добавляет информацию о событиях в боковом меню
+    for (let i = 0; i < this.currentMonths.length; i++) {
+      let monthObj = this.currentMonths[i];
+      monthObj.eventsCount = 0;
+
+      for (let n = 0; n < this.calendar.model.length; n++) {
+        let evDate = new Date(
+            new Date(this.calendar.model[n].date).getFullYear(),
+            new Date(this.calendar.model[n].date).getMonth()
+        );
+        let toDate = new Date(this.currentMonths[i].date);
+
+        if (evDate.getTime() === toDate.getTime()) {
+          monthObj.eventsCount++;
+          monthObj.element.title = `Количество событий в этом месяце: ${monthObj.eventsCount}`;
+          monthObj.element.classList.add('ecalendr__month--event');
         }
       }
     }
@@ -306,8 +424,26 @@ class CalendarLayout {
     prevElement.setAttribute('type', 'button');
     nextElement.setAttribute('type', 'button');
 
-    prevElement.innerHTML = this.calendar.options.navArrowIconHTML;
-    nextElement.innerHTML = this.calendar.options.navArrowIconHTML;
+    if (this.calendar.options.navigation.prev.arialabel && this.calendar.options.navigation.next.arialabel) {
+      prevElement.setAttribute('aria-label', this.calendar.options.navigation.prev.arialabel);
+      nextElement.setAttribute('aria-label', this.calendar.options.navigation.next.arialabel);
+    }
+
+    if (this.calendar.options.navigation.prev.text && this.calendar.options.navigation.next.text) {
+      const prevBtnTxtElement = this._createElement({tagName: 'span', className: 'ecalendr__nav-btn-text'});
+      const nextBtnTxtElement = this._createElement({tagName: 'span', className: 'ecalendr__nav-btn-text'});
+
+      prevBtnTxtElement.textContent = this.calendar.options.navigation.prev.text;
+      nextBtnTxtElement.textContent = this.calendar.options.navigation.next.text;
+
+      this._renderElement(prevElement, prevBtnTxtElement);
+      this._renderElement(nextElement, nextBtnTxtElement);
+    }
+
+    if (this.calendar.options.navigation.prev.icon && this.calendar.options.navigation.next.icon) {
+      prevElement.innerHTML += this.calendar.options.navigation.prev.icon;
+      nextElement.innerHTML += this.calendar.options.navigation.next.icon;
+    }
 
     this._renderElement(parent, prevElement, 'afterbegin');
     this._renderElement(parent, nextElement);
@@ -334,9 +470,14 @@ class CalendarLayout {
     }
 
     this.initialized = true;
-
+    this.element.innerHTML = null;
+    this.parent = this._createElement({className: 'ecalendr'});
     this.mainSection = this._createElement({className: 'ecalendr__main'});
-    this._renderElement(this.element, this.mainSection);
+    this.bodySection = this._createElement({className: 'ecalendr__body'});
+
+    this._renderElement(this.element, this.parent);
+    this._renderElement(this.parent, this.bodySection);
+    this._renderElement(this.bodySection, this.mainSection);
 
     this.changeCalendar(this.calendar, this.element);
   }
@@ -349,22 +490,31 @@ class CalendarLayout {
     if (adjuster !== void 0) {
       let newDate = new Date(calendar.selected.year, calendar.selected.month + adjuster, 1);
       this.calendar = new Calendar({model: calendar.model, options: calendar.options, date: newDate});
-      this.mainSection.innerHTML = '';
+      this.daysListElement.remove();
+
+      if ((calendar.selected.month + adjuster > 11 || calendar.selected.month + adjuster < 0) && this.calendar.options.sidebar) {
+        this.addSidebar(true);
+      }
+    } else {
+      this.addWeekdays();
+
+      if (!this.calendar.options.header && this.calendar.options.navigation) {
+        this.addNavigation();
+      }
     }
 
-    if (this.calendar.options.showHeader) {
+    if (this.calendar.options.header) {
       this.addHeader();
     }
 
-    if (this.calendar.options.navVertical) {
+    if (this.calendar.options.sidebar) {
       this.addSidebar();
     }
 
-    this.addWeekdays();
     this.addDays();
 
     if (this.dataLoaded) {
-      this.addEvents();
+      this.addDayEvents();
     }
   }
 
@@ -460,9 +610,48 @@ class CalendarLayout {
     this.onNavArrowsClick(evt);
   }
 
+  onSidebarMonthClick(evt) {
+    const monthItem = evt.target.closest('[data-idx]');
+
+    if (!monthItem) {
+      return;
+    }
+
+    let adj = null;
+
+    if (Number(monthItem.dataset.idx) >= this.calendar.selected.month) {
+      adj = monthItem.dataset.idx - this.calendar.selected.month;
+    } else if (this.calendar.selected.month >= Number(monthItem.dataset.idx)) {
+      adj = (this.calendar.selected.month - monthItem.dataset.idx) * -1;
+    }
+
+    const selectedMonth = evt.currentTarget.querySelector('.ecalendr__month--selected');
+
+    if (selectedMonth) {
+      selectedMonth.classList.remove('ecalendr__month--selected');
+      monthItem.classList.add('ecalendr__month--selected');
+    }
+
+    this.changeCalendar(this.calendar, this.element, adj);
+  }
+
   onEventDayClick(evt) {
     const eventDay = evt.target.closest('.ecalendr__day--event');
     const activeDay = document.querySelector('.ecalendr__day--event.is-active');
+
+    const onMissClick = () => {
+      if (eventDay) {
+        return;
+      }
+
+      const activeItems = document.querySelectorAll('.ecalendr__day.is-active');
+
+      activeItems.forEach((it) => {
+        it.classList.remove('.is-active');
+      });
+
+      window.removeEventListener('click', onMissClick);
+    };
 
     if (activeDay) {
       activeDay.classList.remove('is-active');
@@ -473,6 +662,7 @@ class CalendarLayout {
     }
 
     eventDay.classList.add('is-active');
+    window.addEventListener('click', onMissClick);
   }
 
   onNavArrowsClick(evt) {
@@ -489,7 +679,19 @@ class CalendarLayout {
 
   onLoadEvents() {
     this.dataLoaded = true;
-    this.addEvents();
+    this.addDayEvents();
+
+    if (this.calendar.options.sidebar) {
+      this.addSidebarEvents();
+    }
+  }
+
+  _nextMonth() {
+    this.changeCalendar(this.calendar, this.element, 1);
+  }
+
+  _prevMonth() {
+    this.changeCalendar(this.calendar, this.element, -1);
   }
 
   _createElement(props) {
@@ -527,7 +729,7 @@ class CalendarLayout {
 }
 
 class ECalendr {
-  constructor(element, settings = {}, data = []) {
+  constructor(element, settings = {}) {
     if (element && typeof element === 'string') {
       this.element = document.querySelector(element.trim());
     } else if (element && element.nodeType) {
@@ -536,9 +738,16 @@ class ECalendr {
       throw new TypeError('Первый аргумент класса new ECalendr должен быть Node-узлом или строкой с корректным CSS-селектором.');
     }
 
-    this.calendar = new Calendar({model: data, options: settings});
-    // eslint-disable-next-line no-new
-    new CalendarLayout({calendar: this.calendar, element: this.element});
+    this.calendar = new Calendar({model: [], options: settings});
+    this.calendarLayout = new CalendarLayout({calendar: this.calendar, element: this.element});
+  }
+
+  nextMonth() {
+    this.calendarLayout._nextMonth();
+  }
+
+  prevMonth() {
+    this.calendarLayout._prevMonth();
   }
 }
 
