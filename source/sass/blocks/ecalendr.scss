@@ -254,9 +254,6 @@ div[data-ecalendr] {
     }
 
     &--today {
-      color: $color-default-white;
-      background-color: #2b6aff;
-
       #{$b}__number {
         padding: 2px;
         border: 2px solid $color-default-black;
