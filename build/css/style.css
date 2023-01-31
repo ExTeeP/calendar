@@ -1607,11 +1607,6 @@ div[data-ecalendr] .ecalendr {
   background-color: rgba(192, 192, 192, 0.3);
 }
 
-.ecalendr__day--today {
-  color: #ffffff;
-  background-color: #2b6aff;
-}
-
 .ecalendr__day--today .ecalendr__number {
   padding: 2px;
   border: 2px solid #000000;
