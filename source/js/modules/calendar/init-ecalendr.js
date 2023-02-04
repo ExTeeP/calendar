@@ -6,23 +6,8 @@ const initEventCalendar = () => {
     return;
   }
 
-  const getEventItemTemplate = (obj) => {
-    const fragment = new DocumentFragment();
-    const {title, body} = obj;
-
-    const titleElement = document.createElement('span');
-    titleElement.textContent = title;
-
-    const bodyElement = document.createTextNode(body);
-
-    fragment.append(titleElement);
-    fragment.append(bodyElement);
-    return fragment;
-  };
-
-  const calendar = new ECalendr(calendarElement, {
-    eventItemTemplate: getEventItemTemplate,
-  });
+  // eslint-disable-next-line no-unused-vars
+  const calendar = new ECalendr(calendarElement);
   window.ECalendr = calendar;
 };
 

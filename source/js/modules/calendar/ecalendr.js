@@ -1,6 +1,9 @@
 /*
   За основу взят этот репозиторий
   https://github.com/jackducasse/caleandar
+
+  дока
+  https://www.notion.so/htmlacademy/30a5ef53a2db48048524a1004bec3c4e
 */
 
 class Calendar {
@@ -9,8 +12,6 @@ class Calendar {
     this.model = model;
     // Значения по умолчанию
     this.options = Object.assign({
-      // Разметка для иконки
-      navArrowIconHTML: '<svg height="15" width="15" viewBox="0 0 100 75"><polyline points="0,0 100,0 50,75" fill="currentColor"></polyline></svg>',
       // Отобразить шапку
       header: true,
       // Отобразить месяцы сбоку
@@ -25,7 +26,19 @@ class Calendar {
       addActiveClassOnHoverEvent: false,
       // Добавляет класс is-active при клике на день с событием(возможно будет нужно для доп. стилизации и тд.)
       addActiveClassOnClickEvent: false,
-      eventItemTemplate: () => {},
+      eventItemTemplate: (jsonContent) => {
+        const fragment = new DocumentFragment();
+        const {title, body} = jsonContent;
+
+        const titleElement = document.createElement('span');
+        titleElement.textContent = title;
+
+        const bodyElement = document.createTextNode(body);
+
+        fragment.append(titleElement);
+        fragment.append(bodyElement);
+        return fragment;
+      },
     }, options);
 
     if ((this.options.header && typeof this.options.header === 'object') || Boolean(this.options.header)) {
@@ -47,6 +60,8 @@ class Calendar {
         shortMonthLabel: false,
         // показывать ли контролы навигации
         showNavigation: false,
+        // показывать ли информацию о событиях в месяце
+        showEventsInfo: true,
       }, options.sidebar);
     }
 
@@ -169,6 +184,12 @@ class CalendarLayout {
           element: monthElement,
         });
 
+        if (this.calendar.options.sidebar.shortMonthLabel) {
+          monthElement.innerText = `${label.substring(0, 3)}`;
+        } else {
+          monthElement.innerText = `${label}`;
+        }
+
         if (i === this.calendar.today.getMonth() && this.calendar.selected.year === this.calendar.today.year) {
           monthElement.classList.add('ecalendr__month--current');
         } else {
@@ -176,7 +197,7 @@ class CalendarLayout {
         }
       });
 
-      if (this.dataLoaded) {
+      if (this.dataLoaded && this.calendar.options.sidebar.showEventsInfo) {
         this.addSidebarEvents();
       }
       return;
@@ -484,15 +505,15 @@ class CalendarLayout {
     this._renderElement(this.parent, this.bodySection);
     this._renderElement(this.bodySection, this.mainSection);
 
-    this.changeCalendar(this.calendar, this.element);
+    this.changeCalendar(this.calendar);
   }
 
-  changeCalendar(calendar, element, adjuster) {
+  changeCalendar(calendar, adjuster) {
     // Метод, который совершает перерисовку календаря если передан adjuster.
     // Adjuster - принимает положительно или отрицательное число, регулирует в каком направлении
     // двигаться по тайм-лайну от текущего: -1 - прошлый месяц, 1 - следующий месяц.
 
-    if (adjuster !== void 0) { // void 0 === undefined
+    if (adjuster !== void 0) {
       // перерысовывает календарь с новой датой
       let newDate = new Date(calendar.selected.year, calendar.selected.month + adjuster, 1);
       this.calendar = new Calendar({model: calendar.model, options: calendar.options, date: newDate});
@@ -502,6 +523,7 @@ class CalendarLayout {
         this.addSidebar(true);
       }
     } else {
+      this.mainSection.innerHTML = null;
       // Срабатывает при первичной инициализации
       this.addWeekdays();
 
@@ -529,12 +551,16 @@ class CalendarLayout {
   getEvents(url) {
     url = url ? url : this.element.dataset.eventsUrl;
 
+    if (!url) {
+      return;
+    }
+
     fetch(url)
         .then((res) => {
           if (!res.ok) {
             this.dataLoaded = false;
-            this.changeCalendar(this.calendar, this.element, 0);
-            throw new Error(res.status);
+            this.changeCalendar(this.calendar, 0);
+            throw new Error(`Status: ${res.status}`);
           }
           return res.json();
         })
@@ -560,9 +586,9 @@ class CalendarLayout {
       return;
     }
 
+    const vw = document.documentElement.clientWidth;
     const eventsElement = eventDay.querySelector('.ecalendr__events');
     let wrapBoxCrd = eventsElement.getBoundingClientRect();
-    const vw = document.documentElement.clientWidth;
 
     if (wrapBoxCrd.width >= vw) {
       // смещение тултипа с событиями если он не помещается в окна просмотра
@@ -644,7 +670,7 @@ class CalendarLayout {
       monthItem.classList.add('ecalendr__month--selected');
     }
 
-    this.changeCalendar(this.calendar, this.element, adj);
+    this.changeCalendar(this.calendar, adj);
   }
 
   onEventDayClick(evt) {
@@ -686,7 +712,7 @@ class CalendarLayout {
 
     const adjuster = target.closest('.ecalendr__nav-btn--prev') ? -1 : 1;
 
-    this.changeCalendar(this.calendar, this.element, adjuster);
+    this.changeCalendar(this.calendar, adjuster);
   }
 
   onLoadEvents() {
@@ -699,23 +725,56 @@ class CalendarLayout {
     }
 
     // Обновляет состояние календаря при загрузке новых событий не меняя выбранный месяц
-    this.changeCalendar(this.calendar, this.element, 0);
+    this.changeCalendar(this.calendar, 0);
   }
 
   _nextMonth() {
-    this.changeCalendar(this.calendar, this.element, 1);
+    this.changeCalendar(this.calendar, 1);
   }
 
   _prevMonth() {
-    this.changeCalendar(this.calendar, this.element, -1);
+    this.changeCalendar(this.calendar, -1);
   }
 
   _nextYear() {
-    this.changeCalendar(this.calendar, this.element, 12);
+    this.changeCalendar(this.calendar, 12);
   }
 
   _prevYear() {
-    this.changeCalendar(this.calendar, this.element, -12);
+    this.changeCalendar(this.calendar, -12);
+  }
+
+  _goDate(month, year) {
+    const currMonth = this.calendar.selected.month;
+    const currYear = this.calendar.selected.year;
+
+    month = typeof Number(month) === 'number' ? Number(month) : currMonth;
+    year = typeof Number(year) === 'number' ? Number(year) : currYear;
+
+    let adj = 0;
+
+    if (month >= currMonth) {
+      adj += month - currMonth - 1;
+    } else {
+      adj += (currMonth - month + 1) * -1;
+    }
+
+    if (year >= currYear) {
+      adj += (year - currYear) * 12;
+    } else {
+      adj += (currYear - year) * -12;
+    }
+
+    if (isNaN(adj)) {
+      return;
+    }
+
+    this.changeCalendar(this.calendar, adj);
+  }
+
+  _setLocale(code) {
+    this.calendar.locale = code;
+    this.changeCalendar(this.calendar);
   }
 
   _createElement(props) {
@@ -762,8 +821,8 @@ class ECalendr {
       throw new TypeError('Первый аргумент класса new ECalendr должен быть Node-узлом или строкой с корректным CSS-селектором.');
     }
 
-    this.calendar = new Calendar({model: [], options: settings});
-    this.calendarLayout = new CalendarLayout({calendar: this.calendar, element: this.element});
+    this.calendar = new Calendar({model: [], options: settings, date: null});
+    this.calendarLayout = new CalendarLayout({calendar: this.calendar, element: this.element, adjuster: void 0});
   }
 
   nextMonth() {
@@ -782,8 +841,16 @@ class ECalendr {
     this.calendarLayout._prevYear();
   }
 
+  goDate(month, year) {
+    this.calendarLayout._goDate(month, year);
+  }
+
   getNewEvents(url) {
     this.calendarLayout.getEvents(url);
+  }
+
+  setLocale(code) {
+    this.calendarLayout._setLocale(code);
   }
 }
 
