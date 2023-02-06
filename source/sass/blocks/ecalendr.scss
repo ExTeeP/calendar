@@ -6,6 +6,10 @@ div[data-ecalendr] {
   .ecalendr {
     margin: 150px auto;
     width: 700px;
+
+    @include vp-767 {
+      width: 100%;
+    }
   }
 }
 
