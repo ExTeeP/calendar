@@ -69,12 +69,12 @@ class Calendar {
       this.options.navigation = Object.assign({
         prev: {
           arialabel: 'Предыдущий месяц',
-          text: 'Предыдущий месяц',
+          text: '',
           icon: '<svg height="15" width="15" viewBox="0 0 100 75"><polyline points="0,0 100,0 50,75" fill="currentColor"></polyline></svg>',
         },
         next: {
           arialabel: 'Следующий месяц',
-          text: 'Следующий месяц',
+          text: '',
           icon: '<svg height="15" width="15" viewBox="0 0 100 75"><polyline points="0,0 100,0 50,75" fill="currentColor"></polyline></svg>',
         },
       }, options.navigation);
@@ -101,7 +101,6 @@ class Calendar {
 
   set locale(code) {
     // Здесь можно указать настройки для локали (названия месяцев, дней недели и первый день недели)
-    // todo добавить возможность ре-инициализации при смене локали?
     this._locale = code;
     switch (code) {
       case 'RU':
@@ -112,6 +111,13 @@ class Calendar {
         this.monthsLocale = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
         this.weekLocale = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
         this.weekends = [5, 6];
+        break;
+      case 'EN':
+        this.selected.firstDay = new Date(this.selected.year, (this.selected.month), 1).getDay();
+        this.selected.lastDay = new Date(this.selected.year, (this.selected.month + 1), 0).getDay();
+        this.monthsLocale = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        this.weekLocale = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        this.weekends = [0, 6];
         break;
       default:
         this.selected.firstDay = new Date(this.selected.year, (this.selected.month), 1).getDay();
@@ -132,6 +138,7 @@ class CalendarLayout {
     this.adjuster = adjuster;
     this.dataLoaded = false;
     this.currentMonths = [];
+    this._calendarLocale = calendar.options.locale;
 
     this.onMouseOver = this.onMouseOver.bind(this);
     this.onMouseOut = this.onMouseOut.bind(this);
@@ -152,6 +159,11 @@ class CalendarLayout {
     this.element.addEventListener('mouseout', this.onMouseOut);
     this.element.addEventListener('click', this.onClick);
     this.element.addEventListener('loadDataSuccess', this.onLoadEvents);
+  }
+
+  addSidebarMonths() {
+    // TODO перенести сюда логику из addSidebar
+    // чтобы можно было изменять месяцы при смене локали
   }
 
   addSidebar(isYearChange) {
@@ -515,16 +527,22 @@ class CalendarLayout {
 
     if (adjuster !== void 0) {
       // перерысовывает календарь с новой датой
+      const newOptions = Object.assign(calendar.options, {
+        locale: this._calendarLocale,
+      });
       let newDate = new Date(calendar.selected.year, calendar.selected.month + adjuster, 1);
-      this.calendar = new Calendar({model: calendar.model, options: calendar.options, date: newDate});
+      this.calendar = new Calendar({model: calendar.model, options: newOptions, date: newDate});
       this.daysListElement.remove();
 
       if ((calendar.selected.month + adjuster > 11 || calendar.selected.month + adjuster < 0) && this.calendar.options.sidebar) {
         this.addSidebar(true);
       }
     } else {
+      // Срабатывает при первичной инициализации или при обновлении через this.changeCalendar(this.calendar);
+
+      this.calendar.locale = this._calendarLocale;
       this.mainSection.innerHTML = null;
-      // Срабатывает при первичной инициализации
+
       this.addWeekdays();
 
       if (!this.calendar.options.header && this.calendar.options.navigation) {
@@ -592,12 +610,12 @@ class CalendarLayout {
 
     if (wrapBoxCrd.width >= vw) {
       // смещение тултипа с событиями если он не помещается в окна просмотра
-      eventsElement.style.width = `${vw - this.calendar.options.tooltipOffsetFromEdge * 2}px`;
+      eventsElement.style.width = `${vw - Number(this.calendar.options.tooltipOffsetFromEdge) * 2}px`;
       wrapBoxCrd = eventsElement.getBoundingClientRect();
-      eventsElement.style.left = `${vw - (wrapBoxCrd.x + wrapBoxCrd.width) - this.calendar.options.tooltipOffsetFromEdge}px`;
+      eventsElement.style.left = `${vw - (wrapBoxCrd.x + wrapBoxCrd.width) - Number(this.calendar.options.tooltipOffsetFromEdge)}px`;
     } else if (!(vw - (wrapBoxCrd.x + wrapBoxCrd.width) > 0)) {
       // смещение тултипа если он выходит за край окна просмотра
-      eventsElement.style.left = `${vw - (wrapBoxCrd.x + wrapBoxCrd.width) - this.calendar.options.tooltipOffsetFromEdge}px`;
+      eventsElement.style.left = `${vw - (wrapBoxCrd.x + wrapBoxCrd.width) - Number(this.calendar.options.tooltipOffsetFromEdge)}px`;
     }
   }
 
@@ -773,7 +791,7 @@ class CalendarLayout {
   }
 
   _setLocale(code) {
-    this.calendar.locale = code;
+    this._calendarLocale = code;
     this.changeCalendar(this.calendar);
   }
 
