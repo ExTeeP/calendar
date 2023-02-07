@@ -1834,6 +1834,10 @@ div[data-ecalendr] .ecalendr {
     width: 100%;
   }
 
+  div[data-ecalendr] .ecalendr {
+    width: 100%;
+  }
+
   .ecalendr {
     font-size: 16px;
     line-height: 20px;
