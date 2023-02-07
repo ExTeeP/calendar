@@ -101,7 +101,9 @@ class Calendar {
 
   set locale(code) {
     // Здесь можно указать настройки для локали (названия месяцев, дней недели и первый день недели)
+    code = code.toUpperCase();
     this._locale = code;
+
     switch (code) {
       case 'RU':
         // третьим аргументом передать 0 - если первый день недели Пн, 1 - если Вск
@@ -139,6 +141,7 @@ class CalendarLayout {
     this.dataLoaded = false;
     this.currentMonths = [];
     this._calendarLocale = calendar.options.locale;
+    this.isChangeLocale = false;
 
     this.onMouseOver = this.onMouseOver.bind(this);
     this.onMouseOut = this.onMouseOut.bind(this);
@@ -161,16 +164,11 @@ class CalendarLayout {
     this.element.addEventListener('loadDataSuccess', this.onLoadEvents);
   }
 
-  addSidebarMonths() {
-    // TODO перенести сюда логику из addSidebar
-    // чтобы можно было изменять месяцы при смене локали
-  }
-
   addSidebar(isYearChange) {
     const activeSidebarElement = this.element.querySelector('.ecalendr__sidebar');
 
     if (activeSidebarElement && !isYearChange) {
-      // переключение месяца
+      // изменение месяца без смены года
       const prevSelectedMonth = activeSidebarElement.querySelector('.ecalendr__month--selected');
       const newSelectedMonth = activeSidebarElement.querySelector(`[data-idx='${this.calendar.selected.month}']`);
 
@@ -178,9 +176,20 @@ class CalendarLayout {
         prevSelectedMonth.classList.remove('ecalendr__month--selected');
         newSelectedMonth.classList.add('ecalendr__month--selected');
       }
+
+      // Если менялись локализация
+      if (this.isChangeLocale) {
+        this.currentMonths.forEach((month, i) => {
+          const monthElement = activeSidebarElement.querySelector(`[data-idx='${i}']`);
+          month.label = this.calendar.monthsLocale[i];
+          monthElement.textContent = month.label;
+        });
+        this.isChangeLocale = false;
+      }
+
       return;
     } else if (activeSidebarElement && isYearChange) {
-      // смена года в сайдбаре
+      // смена года
       this.currentMonths = [];
       this.calendar.monthsLocale.forEach((label, i) => {
         const monthElement = activeSidebarElement.querySelector(`[data-idx='${i}']`);
@@ -212,11 +221,11 @@ class CalendarLayout {
       if (this.dataLoaded && this.calendar.options.sidebar.showEventsInfo) {
         this.addSidebarEvents();
       }
+
       return;
     }
 
-    this.parent.classList.add('ecalendr--has-sidebar');
-
+    // Первичное создание сайдбара
     let sidebarElement = this._createElement({className: 'ecalendr__sidebar'});
     let monthListElement = this._createElement({tagName: 'ul', className: 'ecalendr__months'});
 
@@ -792,6 +801,7 @@ class CalendarLayout {
 
   _setLocale(code) {
     this._calendarLocale = code;
+    this.isChangeLocale = true;
     this.changeCalendar(this.calendar);
   }
 
@@ -839,8 +849,11 @@ class ECalendr {
       throw new TypeError('Первый аргумент класса new ECalendr должен быть Node-узлом или строкой с корректным CSS-селектором.');
     }
 
-    this.calendar = new Calendar({model: [], options: settings, date: null});
-    this.calendarLayout = new CalendarLayout({calendar: this.calendar, element: this.element, adjuster: void 0});
+    this.calendarLayout = new CalendarLayout({
+      calendar: new Calendar({model: [], options: settings, date: null}),
+      element: this.element,
+      adjuster: void 0,
+    });
   }
 
   nextMonth() {
