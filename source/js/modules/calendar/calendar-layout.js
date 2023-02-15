@@ -1,138 +1,6 @@
-/*
-  За основу взят этот репозиторий
-  https://github.com/jackducasse/caleandar
+import {Calendar} from './calendar';
 
-  дока
-  https://www.notion.so/htmlacademy/30a5ef53a2db48048524a1004bec3c4e
-*/
-
-class Calendar {
-  constructor({model, options, date}) {
-    // массив с данными для отображения
-    this.model = model;
-    // Значения по умолчанию
-    this.options = Object.assign({
-      // Отобразить шапку
-      header: true,
-      // Отобразить месяцы сбоку
-      sidebar: true,
-      // Отобразить навигацию
-      navigation: true,
-      // Локализация
-      locale: 'RU',
-      // Горизонтальный отступ от края области просмотра у тултипа
-      tooltipOffsetFromEdge: 20,
-      // Добавляет класс is-hover при наведении на день с событием(возможно будет нужно для доп. стилизации и тд.)
-      addActiveClassOnHoverEvent: false,
-      // Добавляет класс is-active при клике на день с событием(возможно будет нужно для доп. стилизации и тд.)
-      addActiveClassOnClickEvent: false,
-      eventItemTemplate: (jsonContent) => {
-        const fragment = new DocumentFragment();
-        const {title, body} = jsonContent;
-
-        const titleElement = document.createElement('span');
-        titleElement.textContent = title;
-
-        const bodyElement = document.createTextNode(body);
-
-        fragment.append(titleElement);
-        fragment.append(bodyElement);
-        return fragment;
-      },
-    }, options);
-
-    if ((this.options.header && typeof this.options.header === 'object') || Boolean(this.options.header)) {
-      this.options.header = Object.assign({
-        // Если нужно отображать год
-        showYear: true,
-        // Если нужно отображать месяц
-        showMonth: true,
-        // показывать ли контролы навигации
-        showNavigation: true,
-        // второе расположение для шапки
-        secondPosition: false,
-      }, options.header);
-    }
-
-    if ((this.options.sidebar && typeof this.options.sidebar === 'object') || Boolean(this.options.sidebar)) {
-      this.options.sidebar = Object.assign({
-        // короткая запись месяца (первые 3 буквы)
-        shortMonthLabel: false,
-        // показывать ли контролы навигации
-        showNavigation: false,
-        // показывать ли информацию о событиях в месяце
-        showEventsInfo: true,
-      }, options.sidebar);
-    }
-
-    if ((this.options.navigation && typeof this.options.navigation === 'object') || Boolean(this.options.navigation)) {
-      this.options.navigation = Object.assign({
-        prev: {
-          arialabel: 'Предыдущий месяц',
-          text: '',
-          icon: '<svg height="15" width="15" viewBox="0 0 100 75"><polyline points="0,0 100,0 50,75" fill="currentColor"></polyline></svg>',
-        },
-        next: {
-          arialabel: 'Следующий месяц',
-          text: '',
-          icon: '<svg height="15" width="15" viewBox="0 0 100 75"><polyline points="0,0 100,0 50,75" fill="currentColor"></polyline></svg>',
-        },
-      }, options.navigation);
-    }
-
-    this.today = new Date();
-    this.selected = date || this.today;
-    this.today.month = this.today.getMonth();
-    this.today.year = this.today.getFullYear();
-    this.selected.month = this.selected.getMonth();
-    this.selected.year = this.selected.getFullYear();
-    this.selected.days = new Date(this.selected.year, this.selected.month + 1, 0).getDate();
-    this.prev = new Date(this.selected.year, (this.selected.month - 1), 1);
-    if (this.selected.month === 0) {
-      this.prev = new Date(this.selected.year - 1, 11, 1);
-    }
-    this.prev.days = new Date(this.prev.getFullYear(), (this.prev.getMonth() + 1), 0).getDate();
-    this.locale = this.options.locale;
-  }
-
-  get locale() {
-    return this._locale;
-  }
-
-  set locale(code) {
-    // Здесь можно указать настройки для локали (названия месяцев, дней недели и первый день недели)
-    code = code.toUpperCase();
-    this._locale = code;
-
-    switch (code) {
-      case 'RU':
-        // третьим аргументом передать 0 - если первый день недели Пн, 1 - если Вск
-        this.selected.firstDay = new Date(this.selected.year, this.selected.month, 0).getDay();
-        // третьим аргументом передать -1 - если первый день недели Пн, 0 - если Вск
-        this.selected.lastDay = new Date(this.selected.year, this.selected.month + 1, -1).getDay();
-        this.monthsLocale = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-        this.weekLocale = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-        this.weekends = [5, 6];
-        break;
-      case 'EN':
-        this.selected.firstDay = new Date(this.selected.year, (this.selected.month), 1).getDay();
-        this.selected.lastDay = new Date(this.selected.year, (this.selected.month + 1), 0).getDay();
-        this.monthsLocale = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-        this.weekLocale = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        this.weekends = [0, 6];
-        break;
-      default:
-        this.selected.firstDay = new Date(this.selected.year, (this.selected.month), 1).getDay();
-        this.selected.lastDay = new Date(this.selected.year, (this.selected.month + 1), 0).getDay();
-        this.monthsLocale = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-        this.weekLocale = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        this.weekends = [0, 6];
-        break;
-    }
-  }
-}
-
-class CalendarLayout {
+export class CalendarLayout {
   constructor({calendar, element, adjuster}) {
     this.initialized = false;
     this.calendar = calendar;
@@ -148,14 +16,12 @@ class CalendarLayout {
     this.onClick = this.onClick.bind(this);
     this.onSidebarMonthClick = this.onSidebarMonthClick.bind(this);
     this.onLoadEvents = this.onLoadEvents.bind(this);
-    this.init();
-  }
 
-  init() {
     this.createCalendar();
     this.getEvents();
     this.addListener();
   }
+
 
   addListener() {
     this.element.addEventListener('mouseover', this.onMouseOver);
@@ -165,16 +31,16 @@ class CalendarLayout {
   }
 
   addSidebar(isYearChange) {
-    const activeSidebarElement = this.element.querySelector('.ecalendr__sidebar');
+    const activeSidebarElement = this.element.querySelector('.event-calendar__sidebar');
 
     if (activeSidebarElement && !isYearChange) {
       // изменение месяца без смены года
-      const prevSelectedMonth = activeSidebarElement.querySelector('.ecalendr__month--selected');
+      const prevSelectedMonth = activeSidebarElement.querySelector('.event-calendar__month--selected');
       const newSelectedMonth = activeSidebarElement.querySelector(`[data-idx='${this.calendar.selected.month}']`);
 
       if (prevSelectedMonth !== newSelectedMonth) {
-        prevSelectedMonth.classList.remove('ecalendr__month--selected');
-        newSelectedMonth.classList.add('ecalendr__month--selected');
+        prevSelectedMonth.classList.remove('event-calendar__month--selected');
+        newSelectedMonth.classList.add('event-calendar__month--selected');
       }
 
       // Если менялись локализация
@@ -193,10 +59,10 @@ class CalendarLayout {
       this.currentMonths = [];
       this.calendar.monthsLocale.forEach((label, i) => {
         const monthElement = activeSidebarElement.querySelector(`[data-idx='${i}']`);
-        const eventMonths = document.querySelectorAll('.ecalendr__month--event');
+        const eventMonths = document.querySelectorAll('.event-calendar__month--event');
         eventMonths.forEach((el) => {
           el.removeAttribute('title');
-          el.classList.remove('ecalendr__month--event');
+          el.classList.remove('event-calendar__month--event');
         });
 
         this.currentMonths.push({
@@ -212,9 +78,9 @@ class CalendarLayout {
         }
 
         if (i === this.calendar.today.getMonth() && this.calendar.selected.year === this.calendar.today.year) {
-          monthElement.classList.add('ecalendr__month--current');
+          monthElement.classList.add('event-calendar__month--current');
         } else {
-          monthElement.classList.remove('ecalendr__month--current');
+          monthElement.classList.remove('event-calendar__month--current');
         }
       });
 
@@ -226,11 +92,11 @@ class CalendarLayout {
     }
 
     // Первичное создание сайдбара
-    let sidebarElement = this._createElement({className: 'ecalendr__sidebar'});
-    let monthListElement = this._createElement({tagName: 'ul', className: 'ecalendr__months'});
+    let sidebarElement = this._createElement({className: 'event-calendar__sidebar'});
+    let monthListElement = this._createElement({tagName: 'ul', className: 'event-calendar__months'});
 
     this.calendar.monthsLocale.forEach((label, i) => {
-      const monthElement = this._createElement({tagName: 'li', className: 'ecalendr__month'});
+      const monthElement = this._createElement({tagName: 'li', className: 'event-calendar__month'});
       monthElement.setAttribute('data-idx', i);
       monthElement.setAttribute('tabindex', '0');
 
@@ -247,11 +113,11 @@ class CalendarLayout {
       }
 
       if (i === this.calendar.today.getMonth() && this.calendar.selected.year === this.calendar.today.year) {
-        monthElement.classList.add('ecalendr__month--current');
+        monthElement.classList.add('event-calendar__month--current');
       }
 
       if (i === this.calendar.selected.month) {
-        monthElement.classList.add('ecalendr__month--selected');
+        monthElement.classList.add('event-calendar__month--selected');
       }
 
       this._renderElement(monthListElement, monthElement);
@@ -269,15 +135,15 @@ class CalendarLayout {
   }
 
   addNavigation() {
-    const headerElement = this._createElement({className: 'ecalendr__header'});
+    const headerElement = this._createElement({className: 'event-calendar__header'});
     this.addNavButtons(headerElement);
     this._renderElement(this.mainSection, headerElement);
   }
 
   addHeader() {
-    let headerElement = this.element.querySelector('.ecalendr__header');
-    let monthLabelElement = this.element.querySelector('.ecalendr__month');
-    let yearLabelElement = this.element.querySelector('.ecalendr__year');
+    let headerElement = this.element.querySelector('.event-calendar__header');
+    let monthLabelElement = this.element.querySelector('.event-calendar__month');
+    let yearLabelElement = this.element.querySelector('.event-calendar__year');
 
     if (headerElement) {
       if (monthLabelElement && this.calendar.options.header.showMonth) {
@@ -290,18 +156,18 @@ class CalendarLayout {
       return;
     }
 
-    headerElement = this._createElement({className: 'ecalendr__header'});
-    const monthElement = this._createElement({className: 'ecalendr__current-month'});
+    headerElement = this._createElement({className: 'event-calendar__header'});
+    const monthElement = this._createElement({className: 'event-calendar__current-month'});
 
     if (this.calendar.options.header.showMonth) {
-      monthLabelElement = this._createElement({tagName: 'span', className: 'ecalendr__month'});
+      monthLabelElement = this._createElement({tagName: 'span', className: 'event-calendar__month'});
 
       monthLabelElement.innerText = this.calendar.monthsLocale[this.calendar.selected.month];
       this._renderElement(monthElement, monthLabelElement);
     }
 
     if (this.calendar.options.header.showYear) {
-      yearLabelElement = this._createElement({tagName: 'span', className: 'ecalendr__year'});
+      yearLabelElement = this._createElement({tagName: 'span', className: 'event-calendar__year'});
 
       yearLabelElement.innerText = this.calendar.selected.year;
       this._renderElement(monthElement, yearLabelElement);
@@ -321,10 +187,10 @@ class CalendarLayout {
   }
 
   addWeekdays() {
-    const labelsListElement = this._createElement({tagName: 'ul', className: 'ecalendr__weekdays'});
+    const labelsListElement = this._createElement({tagName: 'ul', className: 'event-calendar__weekdays'});
 
     for (let label of this.calendar.weekLocale) {
-      const labelItemElement = this._createElement({tagName: 'li', className: 'ecalendr__weekday'});
+      const labelItemElement = this._createElement({tagName: 'li', className: 'event-calendar__weekday'});
 
       labelItemElement.innerText = label;
       this._renderElement(labelsListElement, labelItemElement);
@@ -334,21 +200,21 @@ class CalendarLayout {
   }
 
   addDays() {
-    this.daysListElement = this._createElement({tagName: 'ul', className: 'ecalendr__days'});
+    this.daysListElement = this._createElement({tagName: 'ul', className: 'event-calendar__days'});
     let dayItemElement;
     let dayInnerLayout;
 
     const addWeekendClass = (count) => {
       for (let j = 0; j < this.calendar.weekends.length; j++) {
         if (count === this.calendar.weekends[j]) {
-          dayItemElement.classList.add('ecalendr__day--weekend');
+          dayItemElement.classList.add('event-calendar__day--weekend');
         }
       }
     };
 
     // Дни предыдущего месяца
     for (let i = 0; i < this.calendar.selected.firstDay; i++) {
-      dayItemElement = this._createElement({tagName: 'li', className: ['ecalendr__day', 'ecalendr__day--prev']});
+      dayItemElement = this._createElement({tagName: 'li', className: ['event-calendar__day', 'event-calendar__day--prev']});
 
       // Выходные дни
       const weekendCount = i % 7;
@@ -361,7 +227,7 @@ class CalendarLayout {
 
     // Дни текущего месяца
     for (let i = 0; i < this.calendar.selected.days; i++) {
-      dayItemElement = this._createElement({tagName: 'li', className: ['ecalendr__day', 'ecalendr__day--current']});
+      dayItemElement = this._createElement({tagName: 'li', className: ['event-calendar__day', 'event-calendar__day--current']});
 
       // Выходные дни
       const weekendCount = (i + this.calendar.selected.firstDay) % 7;
@@ -372,7 +238,7 @@ class CalendarLayout {
 
       // Сегодняшний день
       if ((i + 1) === this.calendar.today.getDate() && this.calendar.selected.month === this.calendar.today.month && this.calendar.selected.year === this.calendar.today.year) {
-        dayItemElement.classList.add('ecalendr__day--today');
+        dayItemElement.classList.add('event-calendar__day--today');
       }
 
       this._renderElement(this.daysListElement, dayItemElement);
@@ -387,7 +253,7 @@ class CalendarLayout {
     }
 
     for (let i = 0; i < extraDaysCount - this.calendar.selected.lastDay; i++) {
-      dayItemElement = this._createElement({tagName: 'li', className: ['ecalendr__day', 'ecalendr__day--next']});
+      dayItemElement = this._createElement({tagName: 'li', className: ['event-calendar__day', 'event-calendar__day--next']});
 
       // Выходные дни
       const weekendCount = (i + this.calendar.selected.lastDay + 1) % 7;
@@ -402,13 +268,13 @@ class CalendarLayout {
 
   addDayEvents() {
     // Добавляет события для текущего месяца
-    let currentDays = document.querySelectorAll('.ecalendr__day.ecalendr__day--current');
+    let currentDays = document.querySelectorAll('.event-calendar__day.event-calendar__day--current');
     let events;
 
     for (let i = 0; i < this.calendar.selected.days; i++) {
 
       let day = currentDays[i];
-      events = day.querySelector('.ecalendr__events');
+      events = day.querySelector('.event-calendar__events');
 
       // Check Date against Event Dates
       for (let n = 0; n < this.calendar.model.length; n++) {
@@ -420,13 +286,13 @@ class CalendarLayout {
         let toDate = new Date(this.calendar.selected.year, this.calendar.selected.month, i + 1);
 
         if (evDate.getTime() === toDate.getTime()) {
-          let eventElement = this._createElement({tagName: 'span', className: 'ecalendr__event'});
+          let eventElement = this._createElement({tagName: 'span', className: 'event-calendar__event'});
 
-          day.classList.add('ecalendr__day--event');
+          day.classList.add('event-calendar__day--event');
           day.setAttribute('tabindex', '0');
 
           if (this.calendar.model[n].url) {
-            eventElement = this._createElement({tagName: 'a', className: 'ecalendr__event'});
+            eventElement = this._createElement({tagName: 'a', className: 'event-calendar__event'});
             eventElement.setAttribute('href', this.calendar.model[n].url);
           }
 
@@ -458,15 +324,15 @@ class CalendarLayout {
         if (evDate.getTime() === toDate.getTime()) {
           monthObj.eventsCount++;
           monthObj.element.title = `Количество событий в этом месяце: ${monthObj.eventsCount}`;
-          monthObj.element.classList.add('ecalendr__month--event');
+          monthObj.element.classList.add('event-calendar__month--event');
         }
       }
     }
   }
 
   addNavButtons(parent) {
-    const prevElement = this._createElement({tagName: 'button', className: ['ecalendr__nav-btn', 'ecalendr__nav-btn--prev']});
-    const nextElement = this._createElement({tagName: 'button', className: ['ecalendr__nav-btn', 'ecalendr__nav-btn--next']});
+    const prevElement = this._createElement({tagName: 'button', className: ['event-calendar__nav-btn', 'event-calendar__nav-btn--prev']});
+    const nextElement = this._createElement({tagName: 'button', className: ['event-calendar__nav-btn', 'event-calendar__nav-btn--next']});
 
     prevElement.setAttribute('type', 'button');
     nextElement.setAttribute('type', 'button');
@@ -477,8 +343,8 @@ class CalendarLayout {
     }
 
     if (this.calendar.options.navigation.prev.text && this.calendar.options.navigation.next.text) {
-      const prevBtnTxtElement = this._createElement({tagName: 'span', className: 'ecalendr__nav-btn-text'});
-      const nextBtnTxtElement = this._createElement({tagName: 'span', className: 'ecalendr__nav-btn-text'});
+      const prevBtnTxtElement = this._createElement({tagName: 'span', className: 'event-calendar__nav-btn-text'});
+      const nextBtnTxtElement = this._createElement({tagName: 'span', className: 'event-calendar__nav-btn-text'});
 
       prevBtnTxtElement.textContent = this.calendar.options.navigation.prev.text;
       nextBtnTxtElement.textContent = this.calendar.options.navigation.next.text;
@@ -498,9 +364,9 @@ class CalendarLayout {
 
   createDayWrap(dayLabel) {
     // Создание разметки внутри элемента дня
-    const dayWrapElement = this._createElement({className: 'ecalendr__day-inner'});
-    const numberElement = this._createElement({className: 'ecalendr__number'});
-    const linksElement = this._createElement({className: 'ecalendr__events'});
+    const dayWrapElement = this._createElement({className: 'event-calendar__day-inner'});
+    const numberElement = this._createElement({className: 'event-calendar__number'});
+    const linksElement = this._createElement({className: 'event-calendar__events'});
 
     numberElement.innerText = dayLabel;
 
@@ -518,9 +384,9 @@ class CalendarLayout {
 
     this.initialized = true;
     this.element.innerHTML = null;
-    this.parent = this._createElement({className: 'ecalendr'});
-    this.mainSection = this._createElement({className: 'ecalendr__main'});
-    this.bodySection = this._createElement({className: 'ecalendr__body'});
+    this.parent = this._createElement({className: 'event-calendar'});
+    this.mainSection = this._createElement({className: 'event-calendar__main'});
+    this.bodySection = this._createElement({className: 'event-calendar__body'});
 
     this._renderElement(this.element, this.parent);
     this._renderElement(this.parent, this.bodySection);
@@ -607,14 +473,14 @@ class CalendarLayout {
   }
 
   offsetEventsTooltip(evt) {
-    const eventDay = evt.target.closest('.ecalendr__day--event');
+    const eventDay = evt.target.closest('.event-calendar__day--event');
 
     if (!eventDay) {
       return;
     }
 
     const vw = document.documentElement.clientWidth;
-    const eventsElement = eventDay.querySelector('.ecalendr__events');
+    const eventsElement = eventDay.querySelector('.event-calendar__events');
     let wrapBoxCrd = eventsElement.getBoundingClientRect();
 
     if (wrapBoxCrd.width >= vw) {
@@ -629,7 +495,7 @@ class CalendarLayout {
   }
 
   onEventDayHover(evt) {
-    const eventDay = evt.target.closest('.ecalendr__day--event');
+    const eventDay = evt.target.closest('.event-calendar__day--event');
 
     if (!eventDay) {
       return;
@@ -646,20 +512,20 @@ class CalendarLayout {
   }
 
   resetOffsetEventsTooltip(evt) {
-    const eventDay = evt.target.closest('.ecalendr__day--event');
+    const eventDay = evt.target.closest('.event-calendar__day--event');
 
     if (!eventDay) {
       return;
     }
 
-    const eventsElement = eventDay.querySelector('.ecalendr__events');
+    const eventsElement = eventDay.querySelector('.event-calendar__events');
 
     eventsElement.style.width = null;
     eventsElement.style.left = null;
   }
 
   onEventDayHoverBlur(evt) {
-    const eventDay = evt.target.closest('.ecalendr__day--event');
+    const eventDay = evt.target.closest('.event-calendar__day--event');
 
     if (!eventDay) {
       return;
@@ -690,26 +556,26 @@ class CalendarLayout {
       adj = (this.calendar.selected.month - monthItem.dataset.idx) * -1;
     }
 
-    const selectedMonth = evt.currentTarget.querySelector('.ecalendr__month--selected');
+    const selectedMonth = evt.currentTarget.querySelector('.event-calendar__month--selected');
 
     if (selectedMonth) {
-      selectedMonth.classList.remove('ecalendr__month--selected');
-      monthItem.classList.add('ecalendr__month--selected');
+      selectedMonth.classList.remove('event-calendar__month--selected');
+      monthItem.classList.add('event-calendar__month--selected');
     }
 
     this.changeCalendar(this.calendar, adj);
   }
 
   onEventDayClick(evt) {
-    const eventDay = evt.target.closest('.ecalendr__day--event');
-    const activeDay = document.querySelector('.ecalendr__day--event.is-active');
+    const eventDay = evt.target.closest('.event-calendar__day--event');
+    const activeDay = document.querySelector('.event-calendar__day--event.is-active');
 
     const onMissClick = () => {
       if (eventDay) {
         return;
       }
 
-      const activeItems = document.querySelectorAll('.ecalendr__day.is-active');
+      const activeItems = document.querySelectorAll('.event-calendar__day.is-active');
 
       activeItems.forEach((it) => {
         it.classList.remove('.is-active');
@@ -733,11 +599,11 @@ class CalendarLayout {
   onNavArrowsClick(evt) {
     const target = evt.target;
 
-    if (!target.closest('.ecalendr__nav-btn')) {
+    if (!target.closest('.event-calendar__nav-btn')) {
       return;
     }
 
-    const adjuster = target.closest('.ecalendr__nav-btn--prev') ? -1 : 1;
+    const adjuster = target.closest('.event-calendar__nav-btn--prev') ? -1 : 1;
 
     this.changeCalendar(this.calendar, adjuster);
   }
@@ -838,51 +704,3 @@ class CalendarLayout {
     }
   }
 }
-
-class ECalendr {
-  constructor(element, settings = {}) {
-    if (element && typeof element === 'string') {
-      this.element = document.querySelector(element.trim());
-    } else if (element && element.nodeType) {
-      this.element = element;
-    } else {
-      throw new TypeError('Первый аргумент класса new ECalendr должен быть Node-узлом или строкой с корректным CSS-селектором.');
-    }
-
-    this.calendarLayout = new CalendarLayout({
-      calendar: new Calendar({model: [], options: settings, date: null}),
-      element: this.element,
-      adjuster: void 0,
-    });
-  }
-
-  nextMonth() {
-    this.calendarLayout._nextMonth();
-  }
-
-  prevMonth() {
-    this.calendarLayout._prevMonth();
-  }
-
-  nextYear() {
-    this.calendarLayout._nextYear();
-  }
-
-  prevYear() {
-    this.calendarLayout._prevYear();
-  }
-
-  goDate(month, year) {
-    this.calendarLayout._goDate(month, year);
-  }
-
-  getNewEvents(url) {
-    this.calendarLayout.getEvents(url);
-  }
-
-  setLocale(code) {
-    this.calendarLayout._setLocale(code);
-  }
-}
-
-export {ECalendr};

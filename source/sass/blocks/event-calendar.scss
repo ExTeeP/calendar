@@ -2,8 +2,8 @@
 //  padding: 0;
 //}
 
-div[data-ecalendr] {
-  .ecalendr {
+div[data-event-calendar] {
+  .event-calendar {
     margin: 150px auto;
     width: 700px;
 
@@ -13,7 +13,7 @@ div[data-ecalendr] {
   }
 }
 
-.ecalendr {
+.event-calendar {
   $b: &;
 
   font-size: 20px;
@@ -266,22 +266,22 @@ div[data-ecalendr] {
 
     &--event {
       &:focus-within {
-        .ecalendr__number {
+        .event-calendar__number {
           opacity: 0.8;
         }
 
-        .ecalendr__events {
+        .event-calendar__events {
           display: flex;
           opacity: 1;
         }
       }
 
       @include hover-focus {
-        .ecalendr__number {
+        .event-calendar__number {
           opacity: 0.8;
         }
 
-        .ecalendr__events {
+        .event-calendar__events {
           display: flex;
           opacity: 1;
         }
