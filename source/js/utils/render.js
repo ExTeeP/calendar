@@ -8,11 +8,14 @@ export const createElement = (template) => {
 
 export const renderElement = (container, component, place = 'beforeend') => {
   switch (place) {
-    case 'prepend':
+    case 'afterbegin':
       container.prepend(component);
       break;
     case 'afterend':
       container.after(component);
+      break;
+    case 'beforebegin':
+      container.before(component);
       break;
     case 'beforeend':
       container.append(component);
