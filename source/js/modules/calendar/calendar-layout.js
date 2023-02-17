@@ -1,4 +1,5 @@
 import {Calendar} from './calendar';
+import {renderElement} from '../../utils/render';
 
 export class CalendarLayout {
   constructor({calendar, element, adjuster}) {
@@ -21,7 +22,6 @@ export class CalendarLayout {
     this.getEvents();
     this.addListener();
   }
-
 
   addListener() {
     this.element.addEventListener('mouseover', this.onMouseOver);
@@ -120,24 +120,24 @@ export class CalendarLayout {
         monthElement.classList.add('event-calendar__month--selected');
       }
 
-      this._renderElement(monthListElement, monthElement);
+      renderElement(monthListElement, monthElement);
     });
 
     sidebarElement.addEventListener('click', this.onSidebarMonthClick);
 
-    this._renderElement(sidebarElement, monthListElement);
+    renderElement(sidebarElement, monthListElement);
 
     if (this.calendar.options.sidebar.showNavigation && this.calendar.options.navigation) {
       this.addNavButtons(sidebarElement);
     }
 
-    this._renderElement(this.bodySection, sidebarElement);
+    renderElement(this.bodySection, sidebarElement);
   }
 
   addNavigation() {
     const headerElement = this._createElement({className: 'event-calendar__header'});
     this.addNavButtons(headerElement);
-    this._renderElement(this.mainSection, headerElement);
+    renderElement(this.mainSection, headerElement);
   }
 
   addHeader() {
@@ -163,26 +163,26 @@ export class CalendarLayout {
       monthLabelElement = this._createElement({tagName: 'span', className: 'event-calendar__month'});
 
       monthLabelElement.innerText = this.calendar.monthsLocale[this.calendar.selected.month];
-      this._renderElement(monthElement, monthLabelElement);
+      renderElement(monthElement, monthLabelElement);
     }
 
     if (this.calendar.options.header.showYear) {
       yearLabelElement = this._createElement({tagName: 'span', className: 'event-calendar__year'});
 
       yearLabelElement.innerText = this.calendar.selected.year;
-      this._renderElement(monthElement, yearLabelElement);
+      renderElement(monthElement, yearLabelElement);
     }
 
-    this._renderElement(headerElement, monthElement);
+    renderElement(headerElement, monthElement);
 
     if (this.calendar.options.header.showNavigation && this.calendar.options.navigation) {
       this.addNavButtons(headerElement);
     }
 
     if (this.calendar.options.header.secondPosition) {
-      this._renderElement(this.mainSection, headerElement, 'afterbegin');
+      renderElement(this.mainSection, headerElement, 'afterbegin');
     } else {
-      this._renderElement(this.parent, headerElement, 'afterbegin');
+      renderElement(this.parent, headerElement, 'afterbegin');
     }
   }
 
@@ -193,10 +193,10 @@ export class CalendarLayout {
       const labelItemElement = this._createElement({tagName: 'li', className: 'event-calendar__weekday'});
 
       labelItemElement.innerText = label;
-      this._renderElement(labelsListElement, labelItemElement);
+      renderElement(labelsListElement, labelItemElement);
     }
 
-    this._renderElement(this.mainSection, labelsListElement);
+    renderElement(this.mainSection, labelsListElement);
   }
 
   addDays() {
@@ -221,8 +221,8 @@ export class CalendarLayout {
       addWeekendClass(weekendCount);
 
       dayInnerLayout = this.createDayWrap((this.calendar.prev.days - this.calendar.selected.firstDay) + (i + 1));
-      this._renderElement(dayItemElement, dayInnerLayout);
-      this._renderElement(this.daysListElement, dayItemElement);
+      renderElement(dayItemElement, dayInnerLayout);
+      renderElement(this.daysListElement, dayItemElement);
     }
 
     // Дни текущего месяца
@@ -234,14 +234,14 @@ export class CalendarLayout {
       addWeekendClass(weekendCount);
 
       dayInnerLayout = this.createDayWrap(i + 1);
-      this._renderElement(dayItemElement, dayInnerLayout);
+      renderElement(dayItemElement, dayInnerLayout);
 
       // Сегодняшний день
       if ((i + 1) === this.calendar.today.getDate() && this.calendar.selected.month === this.calendar.today.month && this.calendar.selected.year === this.calendar.today.year) {
         dayItemElement.classList.add('event-calendar__day--today');
       }
 
-      this._renderElement(this.daysListElement, dayItemElement);
+      renderElement(this.daysListElement, dayItemElement);
     }
 
     // Дни следующего месяца
@@ -260,10 +260,10 @@ export class CalendarLayout {
       addWeekendClass(weekendCount);
 
       dayInnerLayout = this.createDayWrap(i + 1);
-      this._renderElement(dayItemElement, dayInnerLayout);
-      this._renderElement(this.daysListElement, dayItemElement);
+      renderElement(dayItemElement, dayInnerLayout);
+      renderElement(this.daysListElement, dayItemElement);
     }
-    this._renderElement(this.mainSection, this.daysListElement);
+    renderElement(this.mainSection, this.daysListElement);
   }
 
   addDayEvents() {
@@ -296,9 +296,9 @@ export class CalendarLayout {
             eventElement.setAttribute('href', this.calendar.model[n].url);
           }
 
-          this._renderElement(eventElement, this.getEventTemplate(this.calendar.model[n]));
+          renderElement(eventElement, this.getEventTemplate(this.calendar.model[n]));
 
-          this._renderElement(events, eventElement);
+          renderElement(events, eventElement);
         }
       }
     }
@@ -349,8 +349,8 @@ export class CalendarLayout {
       prevBtnTxtElement.textContent = this.calendar.options.navigation.prev.text;
       nextBtnTxtElement.textContent = this.calendar.options.navigation.next.text;
 
-      this._renderElement(prevElement, prevBtnTxtElement);
-      this._renderElement(nextElement, nextBtnTxtElement);
+      renderElement(prevElement, prevBtnTxtElement);
+      renderElement(nextElement, nextBtnTxtElement);
     }
 
     if (this.calendar.options.navigation.prev.icon && this.calendar.options.navigation.next.icon) {
@@ -358,8 +358,8 @@ export class CalendarLayout {
       nextElement.innerHTML += this.calendar.options.navigation.next.icon;
     }
 
-    this._renderElement(parent, prevElement, 'afterbegin');
-    this._renderElement(parent, nextElement);
+    renderElement(parent, prevElement, 'afterbegin');
+    renderElement(parent, nextElement);
   }
 
   createDayWrap(dayLabel) {
@@ -370,8 +370,8 @@ export class CalendarLayout {
 
     numberElement.innerText = dayLabel;
 
-    this._renderElement(dayWrapElement, numberElement);
-    this._renderElement(dayWrapElement, linksElement);
+    renderElement(dayWrapElement, numberElement);
+    renderElement(dayWrapElement, linksElement);
 
     return dayWrapElement;
   }
@@ -388,9 +388,9 @@ export class CalendarLayout {
     this.mainSection = this._createElement({className: 'event-calendar__main'});
     this.bodySection = this._createElement({className: 'event-calendar__body'});
 
-    this._renderElement(this.element, this.parent);
-    this._renderElement(this.parent, this.bodySection);
-    this._renderElement(this.bodySection, this.mainSection);
+    renderElement(this.element, this.parent);
+    renderElement(this.parent, this.bodySection);
+    renderElement(this.bodySection, this.mainSection);
 
     this.changeCalendar(this.calendar);
   }
@@ -685,22 +685,5 @@ export class CalendarLayout {
     }
 
     return element;
-  }
-
-  _renderElement(container, component, place = 'beforeend') {
-    switch (place) {
-      case 'afterbegin':
-        container.prepend(component);
-        break;
-      case 'afterend':
-        container.after(component);
-        break;
-      case 'beforebegin':
-        container.before(component);
-        break;
-      case 'beforeend':
-        container.append(component);
-        break;
-    }
   }
 }
