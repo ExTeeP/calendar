@@ -1,14 +1,21 @@
 import {Calendar} from './calendar';
-import {renderElement} from '../../utils/render';
+import {createElement, renderElement} from '../../utils/render';
+import {createCalendarTemplate} from './markup/main';
+import {createHeaderTemplate} from './markup/header';
+import {createWeekdaysTemplate} from './markup/weekdays';
+import {createDayEventTemplate, createDaysTemplate} from './markup/days';
+import {createSidebarListTemplate, createSidebarTemplate} from './markup/sidebar';
+import {getCalendarDataEvents} from './get-events';
 
 export class CalendarLayout {
   constructor({calendar, element, adjuster}) {
+    this.DAYS_COUNT = 42;
+
     this.initialized = false;
     this.calendar = calendar;
     this.element = element;
     this.adjuster = adjuster;
     this.dataLoaded = false;
-    this.currentMonths = [];
     this._calendarLocale = calendar.options.locale;
     this.isChangeLocale = false;
 
@@ -19,8 +26,6 @@ export class CalendarLayout {
     this.onLoadEvents = this.onLoadEvents.bind(this);
 
     this.createCalendar();
-    this.getEvents();
-    this.addListener();
   }
 
   addListener() {
@@ -30,122 +35,25 @@ export class CalendarLayout {
     this.element.addEventListener('loadDataSuccess', this.onLoadEvents);
   }
 
-  addSidebar(isYearChange) {
-    const activeSidebarElement = this.element.querySelector('.event-calendar__sidebar');
-
-    if (activeSidebarElement && !isYearChange) {
-      // изменение месяца без смены года
-      const prevSelectedMonth = activeSidebarElement.querySelector('.event-calendar__month--selected');
-      const newSelectedMonth = activeSidebarElement.querySelector(`[data-idx='${this.calendar.selected.month}']`);
-
-      if (prevSelectedMonth !== newSelectedMonth) {
-        prevSelectedMonth.classList.remove('event-calendar__month--selected');
-        newSelectedMonth.classList.add('event-calendar__month--selected');
-      }
-
-      // Если менялись локализация
-      if (this.isChangeLocale) {
-        this.currentMonths.forEach((month, i) => {
-          const monthElement = activeSidebarElement.querySelector(`[data-idx='${i}']`);
-          month.label = this.calendar.monthsLocale[i];
-          monthElement.textContent = month.label;
-        });
-        this.isChangeLocale = false;
-      }
-
-      return;
-    } else if (activeSidebarElement && isYearChange) {
-      // смена года
-      this.currentMonths = [];
-      this.calendar.monthsLocale.forEach((label, i) => {
-        const monthElement = activeSidebarElement.querySelector(`[data-idx='${i}']`);
-        const eventMonths = document.querySelectorAll('.event-calendar__month--event');
-        eventMonths.forEach((el) => {
-          el.removeAttribute('title');
-          el.classList.remove('event-calendar__month--event');
-        });
-
-        this.currentMonths.push({
-          date: new Date(this.calendar.selected.year, i),
-          label,
-          element: monthElement,
-        });
-
-        if (this.calendar.options.sidebar.shortMonthLabel) {
-          monthElement.innerText = `${label.substring(0, 3)}`;
-        } else {
-          monthElement.innerText = `${label}`;
-        }
-
-        if (i === this.calendar.today.getMonth() && this.calendar.selected.year === this.calendar.today.year) {
-          monthElement.classList.add('event-calendar__month--current');
-        } else {
-          monthElement.classList.remove('event-calendar__month--current');
-        }
-      });
-
-      if (this.dataLoaded && this.calendar.options.sidebar.showEventsInfo) {
-        this.addSidebarEvents();
-      }
-
-      return;
-    }
-
-    // Первичное создание сайдбара
-    let sidebarElement = this._createElement({className: 'event-calendar__sidebar'});
-    let monthListElement = this._createElement({tagName: 'ul', className: 'event-calendar__months'});
-
-    this.calendar.monthsLocale.forEach((label, i) => {
-      const monthElement = this._createElement({tagName: 'li', className: 'event-calendar__month'});
-      monthElement.setAttribute('data-idx', i);
-      monthElement.setAttribute('tabindex', '0');
-
-      this.currentMonths.push({
-        date: new Date(this.calendar.selected.year, i),
-        label,
-        element: monthElement,
-      });
-
-      if (this.calendar.options.sidebar.shortMonthLabel) {
-        monthElement.innerText = `${label.substring(0, 3)}`;
-      } else {
-        monthElement.innerText = `${label}`;
-      }
-
-      if (i === this.calendar.today.getMonth() && this.calendar.selected.year === this.calendar.today.year) {
-        monthElement.classList.add('event-calendar__month--current');
-      }
-
-      if (i === this.calendar.selected.month) {
-        monthElement.classList.add('event-calendar__month--selected');
-      }
-
-      renderElement(monthListElement, monthElement);
-    });
-
-    sidebarElement.addEventListener('click', this.onSidebarMonthClick);
-
-    renderElement(sidebarElement, monthListElement);
-
-    if (this.calendar.options.sidebar.showNavigation && this.calendar.options.navigation) {
-      this.addNavButtons(sidebarElement);
-    }
-
-    renderElement(this.bodySection, sidebarElement);
-  }
-
+  /* --== HEADER START ==-- */
   addNavigation() {
-    const headerElement = this._createElement({className: 'event-calendar__header'});
-    this.addNavButtons(headerElement);
+    const setup = {
+      navigation: this.calendar.options.navigation,
+    };
+
+    const headerElement = createElement(createHeaderTemplate(setup));
     renderElement(this.mainSection, headerElement);
   }
 
   addHeader() {
+    let container = this.mainSection;
     let headerElement = this.element.querySelector('.event-calendar__header');
-    let monthLabelElement = this.element.querySelector('.event-calendar__month');
-    let yearLabelElement = this.element.querySelector('.event-calendar__year');
 
+    // Если хедер уже существует просто обновляется текстовый контент
     if (headerElement) {
+      let monthLabelElement = this.element.querySelector('.event-calendar__month');
+      let yearLabelElement = this.element.querySelector('.event-calendar__year');
+
       if (monthLabelElement && this.calendar.options.header.showMonth) {
         monthLabelElement.innerText = this.calendar.monthsLocale[this.calendar.selected.month];
       }
@@ -156,320 +64,186 @@ export class CalendarLayout {
       return;
     }
 
-    headerElement = this._createElement({className: 'event-calendar__header'});
-    const monthElement = this._createElement({className: 'event-calendar__current-month'});
+    const setup = {
+      monthYear: {
+        month: this.calendar.options.header.showMonth && this.calendar.monthsLocale[this.calendar.selected.month],
+        year: this.calendar.options.header.showYear && this.calendar.selected.year,
+      },
+      navigation: this.calendar.options.header.showNavigation && this.calendar.options.navigation,
+    };
 
-    if (this.calendar.options.header.showMonth) {
-      monthLabelElement = this._createElement({tagName: 'span', className: 'event-calendar__month'});
+    headerElement = createElement(createHeaderTemplate(setup));
 
-      monthLabelElement.innerText = this.calendar.monthsLocale[this.calendar.selected.month];
-      renderElement(monthElement, monthLabelElement);
+    if (!this.calendar.options.header.secondPosition) {
+      container = this.element.querySelector('.event-calendar');
     }
 
-    if (this.calendar.options.header.showYear) {
-      yearLabelElement = this._createElement({tagName: 'span', className: 'event-calendar__year'});
-
-      yearLabelElement.innerText = this.calendar.selected.year;
-      renderElement(monthElement, yearLabelElement);
-    }
-
-    renderElement(headerElement, monthElement);
-
-    if (this.calendar.options.header.showNavigation && this.calendar.options.navigation) {
-      this.addNavButtons(headerElement);
-    }
-
-    if (this.calendar.options.header.secondPosition) {
-      renderElement(this.mainSection, headerElement, 'afterbegin');
-    } else {
-      renderElement(this.parent, headerElement, 'afterbegin');
-    }
+    renderElement(container, headerElement, 'afterbegin');
   }
+  /* --== HEADER END ==-- */
 
+  /* --== MAIN START ==-- */
   addWeekdays() {
-    const labelsListElement = this._createElement({tagName: 'ul', className: 'event-calendar__weekdays'});
+    const weekdaysList = [];
 
     for (let label of this.calendar.weekLocale) {
-      const labelItemElement = this._createElement({tagName: 'li', className: 'event-calendar__weekday'});
+      const weekdaySetup = {
+        label,
+      };
 
-      labelItemElement.innerText = label;
-      renderElement(labelsListElement, labelItemElement);
+      weekdaysList.push(weekdaySetup);
     }
 
+    const labelsListElement = createElement(createWeekdaysTemplate({list: weekdaysList}));
     renderElement(this.mainSection, labelsListElement);
   }
 
   addDays() {
-    this.daysListElement = this._createElement({tagName: 'ul', className: 'event-calendar__days'});
-    let dayItemElement;
-    let dayInnerLayout;
+    this.daysList = [];
 
-    const addWeekendClass = (count) => {
-      for (let j = 0; j < this.calendar.weekends.length; j++) {
-        if (count === this.calendar.weekends[j]) {
-          dayItemElement.classList.add('event-calendar__day--weekend');
+    for (let index = 0; index < this.DAYS_COUNT; index++) {
+      const daySetup = {
+        isPrev: false,
+        isNext: false,
+        isCurrent: false,
+        isWeekend: false,
+        isToday: false,
+        dayNumber: 0,
+        date: new Date(),
+      };
+
+      const isPrevDay = index < this.calendar.selected.firstDay;
+      const isCurrentDay = !isPrevDay && index < (this.calendar.selected.firstDay + this.calendar.selected.days);
+
+      // Дни предыдущего месяца
+      if (isPrevDay) {
+        daySetup.isPrev = true;
+        daySetup.dayNumber = (this.calendar.prev.days - this.calendar.selected.firstDay) + (index + 1);
+        daySetup.date = new Date(this.calendar.selected.year, this.calendar.selected.month - 1, daySetup.dayNumber);
+      } else if (isCurrentDay) {
+        daySetup.isCurrent = true;
+        daySetup.dayNumber = (index + 1) - this.calendar.selected.firstDay;
+        daySetup.date = new Date(this.calendar.selected.year, this.calendar.selected.month, daySetup.dayNumber);
+
+        // Сегодняшний день
+        if (
+          daySetup.dayNumber === this.calendar.today.getDate() &&
+          this.calendar.selected.month === this.calendar.today.month &&
+          this.calendar.selected.year === this.calendar.today.year
+        ) {
+          daySetup.isToday = true;
         }
-      }
-    };
-
-    // Дни предыдущего месяца
-    for (let i = 0; i < this.calendar.selected.firstDay; i++) {
-      dayItemElement = this._createElement({tagName: 'li', className: ['event-calendar__day', 'event-calendar__day--prev']});
-
-      // Выходные дни
-      const weekendCount = i % 7;
-      addWeekendClass(weekendCount);
-
-      dayInnerLayout = this.createDayWrap((this.calendar.prev.days - this.calendar.selected.firstDay) + (i + 1));
-      renderElement(dayItemElement, dayInnerLayout);
-      renderElement(this.daysListElement, dayItemElement);
-    }
-
-    // Дни текущего месяца
-    for (let i = 0; i < this.calendar.selected.days; i++) {
-      dayItemElement = this._createElement({tagName: 'li', className: ['event-calendar__day', 'event-calendar__day--current']});
-
-      // Выходные дни
-      const weekendCount = (i + this.calendar.selected.firstDay) % 7;
-      addWeekendClass(weekendCount);
-
-      dayInnerLayout = this.createDayWrap(i + 1);
-      renderElement(dayItemElement, dayInnerLayout);
-
-      // Сегодняшний день
-      if ((i + 1) === this.calendar.today.getDate() && this.calendar.selected.month === this.calendar.today.month && this.calendar.selected.year === this.calendar.today.year) {
-        dayItemElement.classList.add('event-calendar__day--today');
+      } else {
+        daySetup.isNext = true;
+        daySetup.dayNumber = (index + 1) - (this.calendar.selected.firstDay + this.calendar.selected.days);
+        daySetup.date = new Date(this.calendar.selected.year, this.calendar.selected.month + 1, daySetup.dayNumber);
       }
 
-      renderElement(this.daysListElement, dayItemElement);
+      if (
+        index % 7 === this.calendar.weekends[0] ||
+        index % 7 === this.calendar.weekends[1]
+      ) {
+        daySetup.isWeekend = true;
+      }
+
+      this.daysList.push(daySetup);
     }
 
-    // Дни следующего месяца
-    let extraDaysCount = 13;
-    if (this.daysListElement.children.length > 35) {
-      extraDaysCount = 6;
-    } else if (this.daysListElement.children.length < 29) {
-      extraDaysCount = 20;
-    }
-
-    for (let i = 0; i < extraDaysCount - this.calendar.selected.lastDay; i++) {
-      dayItemElement = this._createElement({tagName: 'li', className: ['event-calendar__day', 'event-calendar__day--next']});
-
-      // Выходные дни
-      const weekendCount = (i + this.calendar.selected.lastDay + 1) % 7;
-      addWeekendClass(weekendCount);
-
-      dayInnerLayout = this.createDayWrap(i + 1);
-      renderElement(dayItemElement, dayInnerLayout);
-      renderElement(this.daysListElement, dayItemElement);
-    }
+    this.daysListElement = createElement(createDaysTemplate({days: this.daysList}));
     renderElement(this.mainSection, this.daysListElement);
   }
+  /* --== MAIN END ==-- */
 
-  addDayEvents() {
-    // Добавляет события для текущего месяца
-    let currentDays = document.querySelectorAll('.event-calendar__day.event-calendar__day--current');
-    let events;
+  /* --== SIDEBAR START ==-- */
+  sidebarFillMonthsSetup() {
+    this.currentMonths = [];
 
-    for (let i = 0; i < this.calendar.selected.days; i++) {
+    this.calendar.monthsLocale.forEach((label, i) => {
+      const monthSetup = {
+        date: new Date(this.calendar.selected.year, i),
+        label: this.calendar.options.sidebar.shortMonthLabel ? label.substring(0, 3) : label,
+        index: i,
+        isCurrent: false,
+        isSelected: false,
+      };
 
-      let day = currentDays[i];
-      events = day.querySelector('.event-calendar__events');
-
-      // Check Date against Event Dates
-      for (let n = 0; n < this.calendar.model.length; n++) {
-        let evDate = new Date(
-            new Date(this.calendar.model[n].datetime).getFullYear(),
-            new Date(this.calendar.model[n].datetime).getMonth(),
-            new Date(this.calendar.model[n].datetime).getDate()
-        );
-        let toDate = new Date(this.calendar.selected.year, this.calendar.selected.month, i + 1);
-
-        if (evDate.getTime() === toDate.getTime()) {
-          let eventElement = this._createElement({tagName: 'span', className: 'event-calendar__event'});
-
-          day.classList.add('event-calendar__day--event');
-          day.setAttribute('tabindex', '0');
-
-          if (this.calendar.model[n].url) {
-            eventElement = this._createElement({tagName: 'a', className: 'event-calendar__event'});
-            eventElement.setAttribute('href', this.calendar.model[n].url);
-          }
-
-          renderElement(eventElement, this.getEventTemplate(this.calendar.model[n]));
-
-          renderElement(events, eventElement);
-        }
+      if (i === this.calendar.today.getMonth() && this.calendar.selected.year === this.calendar.today.year) {
+        monthSetup.isCurrent = true;
       }
-    }
-  }
 
-  getEventTemplate(jsonContent) {
-    return this.calendar.options.eventItemTemplate(jsonContent);
-  }
-
-  addSidebarEvents() {
-    // Добавляет информацию о событиях в боковом меню
-    for (let i = 0; i < this.currentMonths.length; i++) {
-      let monthObj = this.currentMonths[i];
-      monthObj.eventsCount = 0;
-
-      for (let n = 0; n < this.calendar.model.length; n++) {
-        let evDate = new Date(
-            new Date(this.calendar.model[n].datetime).getFullYear(),
-            new Date(this.calendar.model[n].datetime).getMonth()
-        );
-        let toDate = new Date(this.currentMonths[i].date);
-
-        if (evDate.getTime() === toDate.getTime()) {
-          monthObj.eventsCount++;
-          monthObj.element.title = `Количество событий в этом месяце: ${monthObj.eventsCount}`;
-          monthObj.element.classList.add('event-calendar__month--event');
-        }
+      if (i === this.calendar.selected.month) {
+        monthSetup.isSelected = true;
       }
-    }
+
+      this.currentMonths.push(monthSetup);
+    });
   }
 
-  addNavButtons(parent) {
-    const prevElement = this._createElement({tagName: 'button', className: ['event-calendar__nav-btn', 'event-calendar__nav-btn--prev']});
-    const nextElement = this._createElement({tagName: 'button', className: ['event-calendar__nav-btn', 'event-calendar__nav-btn--next']});
+  sidebarMonthListSoftChange(sidebarElement) {
+    // смена месяца без смены года
+    const prevSelectedMonth = sidebarElement.querySelector('.event-calendar__month--selected');
+    const newSelectedMonth = sidebarElement.querySelector(`[data-idx='${this.calendar.selected.month}']`);
 
-    prevElement.setAttribute('type', 'button');
-    nextElement.setAttribute('type', 'button');
-
-    if (this.calendar.options.navigation.prev.arialabel && this.calendar.options.navigation.next.arialabel) {
-      prevElement.setAttribute('aria-label', this.calendar.options.navigation.prev.arialabel);
-      nextElement.setAttribute('aria-label', this.calendar.options.navigation.next.arialabel);
+    if (prevSelectedMonth !== newSelectedMonth) {
+      prevSelectedMonth.classList.remove('event-calendar__month--selected');
+      newSelectedMonth.classList.add('event-calendar__month--selected');
     }
 
-    if (this.calendar.options.navigation.prev.text && this.calendar.options.navigation.next.text) {
-      const prevBtnTxtElement = this._createElement({tagName: 'span', className: 'event-calendar__nav-btn-text'});
-      const nextBtnTxtElement = this._createElement({tagName: 'span', className: 'event-calendar__nav-btn-text'});
-
-      prevBtnTxtElement.textContent = this.calendar.options.navigation.prev.text;
-      nextBtnTxtElement.textContent = this.calendar.options.navigation.next.text;
-
-      renderElement(prevElement, prevBtnTxtElement);
-      renderElement(nextElement, nextBtnTxtElement);
-    }
-
-    if (this.calendar.options.navigation.prev.icon && this.calendar.options.navigation.next.icon) {
-      prevElement.innerHTML += this.calendar.options.navigation.prev.icon;
-      nextElement.innerHTML += this.calendar.options.navigation.next.icon;
-    }
-
-    renderElement(parent, prevElement, 'afterbegin');
-    renderElement(parent, nextElement);
-  }
-
-  createDayWrap(dayLabel) {
-    // Создание разметки внутри элемента дня
-    const dayWrapElement = this._createElement({className: 'event-calendar__day-inner'});
-    const numberElement = this._createElement({className: 'event-calendar__number'});
-    const linksElement = this._createElement({className: 'event-calendar__events'});
-
-    numberElement.innerText = dayLabel;
-
-    renderElement(dayWrapElement, numberElement);
-    renderElement(dayWrapElement, linksElement);
-
-    return dayWrapElement;
-  }
-
-  createCalendar() {
-    // Метод, который совершает первичную отрисовку
-    if (this.initialized) {
-      return;
-    }
-
-    this.initialized = true;
-    this.element.innerHTML = null;
-    this.parent = this._createElement({className: 'event-calendar'});
-    this.mainSection = this._createElement({className: 'event-calendar__main'});
-    this.bodySection = this._createElement({className: 'event-calendar__body'});
-
-    renderElement(this.element, this.parent);
-    renderElement(this.parent, this.bodySection);
-    renderElement(this.bodySection, this.mainSection);
-
-    this.changeCalendar(this.calendar);
-  }
-
-  changeCalendar(calendar, adjuster) {
-    // Метод, который совершает перерисовку календаря если передан adjuster.
-    // Adjuster - принимает положительно или отрицательное число, регулирует в каком направлении
-    // двигаться по тайм-лайну от текущего: -1 - прошлый месяц, 1 - следующий месяц.
-
-    if (adjuster !== void 0) {
-      // перерысовывает календарь с новой датой
-      const newOptions = Object.assign(calendar.options, {
-        locale: this._calendarLocale,
+    // Если менялись локализация
+    if (this.isChangeLocale) {
+      this.currentMonths.forEach((month, i) => {
+        const monthElement = sidebarElement.querySelector(`[data-idx='${i}']`);
+        month.label = this.calendar.monthsLocale[i];
+        monthElement.textContent = month.label;
       });
-      let newDate = new Date(calendar.selected.year, calendar.selected.month + adjuster, 1);
-      this.calendar = new Calendar({model: calendar.model, options: newOptions, date: newDate});
-      this.daysListElement.remove();
-
-      if ((calendar.selected.month + adjuster > 11 || calendar.selected.month + adjuster < 0) && this.calendar.options.sidebar) {
-        this.addSidebar(true);
-      }
-    } else {
-      // Срабатывает при первичной инициализации или при обновлении через this.changeCalendar(this.calendar);
-
-      this.calendar.locale = this._calendarLocale;
-      this.mainSection.innerHTML = null;
-
-      this.addWeekdays();
-
-      if (!this.calendar.options.header && this.calendar.options.navigation) {
-        // Добавляет контролы навигации когда шапке нет, а навигация должна быть
-        this.addNavigation();
-      }
-    }
-
-    if (this.calendar.options.header) {
-      this.addHeader();
-    }
-
-    if (this.calendar.options.sidebar) {
-      this.addSidebar();
-    }
-
-    this.addDays();
-
-    if (this.dataLoaded) {
-      this.addDayEvents();
+      this.isChangeLocale = false;
     }
   }
 
-  getEvents(url) {
-    url = url ? url : this.element.dataset.eventsUrl;
+  sidebarMonthListHardChange(sidebarElement) {
+    // если текущий год изменился, месяцы перерисовываются
+    const monthsWrapElement = sidebarElement.querySelector('.event-calendar__months-wrap');
 
-    if (!url) {
+    monthsWrapElement.innerHTML = '';
+    this.sidebarFillMonthsSetup();
+
+    const monthsListElement = createElement(createSidebarListTemplate({items: this.currentMonths}));
+
+    renderElement(monthsWrapElement, monthsListElement);
+  }
+
+  addSidebar(isYearChange) {
+    const container = this.element.querySelector('.event-calendar__body');
+    let sidebarElement = this.element.querySelector('.event-calendar__sidebar');
+
+    if (sidebarElement) {
+      if (isYearChange) {
+        this.sidebarMonthListHardChange(sidebarElement);
+      } else {
+        this.sidebarMonthListSoftChange(sidebarElement);
+      }
       return;
     }
 
-    fetch(url)
-        .then((res) => {
-          if (!res.ok) {
-            this.dataLoaded = false;
-            this.changeCalendar(this.calendar, 0);
-            throw new Error(`Status: ${res.status}`);
-          }
-          return res.json();
-        })
-        .then((data) => {
-          this.calendar.model = data.events;
-          this.element.dispatchEvent(new CustomEvent('loadDataSuccess'));
-          return data;
-        });
+    this.sidebarFillMonthsSetup();
+
+    const setup = {
+      navigation: this.calendar.options.sidebar.showNavigation && this.calendar.options.navigation,
+      months: {
+        items: this.currentMonths,
+      },
+    };
+
+    sidebarElement = createElement(createSidebarTemplate(setup));
+
+    sidebarElement.addEventListener('click', this.onSidebarMonthClick);
+    renderElement(container, sidebarElement);
   }
+  /* --== SIDEBAR END ==-- */
 
-  onMouseOver(evt) {
-    this.offsetEventsTooltip(evt);
-
-    if (this.calendar.options.addActiveClassOnHoverEvent) {
-      this.onEventDayHover(evt);
-    }
+  /* --== METHODS START ==-- */
+  getEvents(url) {
+    getCalendarDataEvents(url, this);
   }
 
   offsetEventsTooltip(evt) {
@@ -494,6 +268,141 @@ export class CalendarLayout {
     }
   }
 
+  resetOffsetEventsTooltip(evt) {
+    const eventDay = evt.target.closest('.event-calendar__day--event');
+
+    if (!eventDay) {
+      return;
+    }
+
+    const eventsElement = eventDay.querySelector('.event-calendar__events');
+
+    eventsElement.style.width = null;
+    eventsElement.style.left = null;
+  }
+
+  changeCalendar(calendar, adjuster) {
+    // Метод, который совершает перерисовку календаря.
+    // adjuster - принимает положительно или отрицательное число, регулирует в каком направлении
+    // двигаться по тайм-лайну от текущего: -1 - прошлый месяц, 1 - следующий месяц.
+
+    if (adjuster !== void 0) {
+      // перерысовывает календарь с новой датой
+      const newOptions = Object.assign(calendar.options, {
+        locale: this._calendarLocale,
+      });
+      let newDate = new Date(calendar.selected.year, calendar.selected.month + adjuster, 1);
+      this.calendar = new Calendar({model: calendar.model, options: newOptions, date: newDate});
+      this.daysListElement.remove();
+
+      if ((calendar.selected.month + adjuster > 11 || calendar.selected.month + adjuster < 0) && this.calendar.options.sidebar) {
+        this.addSidebar(true);
+      }
+    } else {
+      // Срабатывает при первичной инициализации или при обновлении через this.changeCalendar(this.calendar);
+      this.calendar.locale = this._calendarLocale;
+      this.mainSection.innerHTML = null;
+
+      this.addWeekdays();
+
+      if (!this.calendar.options.header && this.calendar.options.navigation) {
+        // Добавляет контролы навигации когда шапки нет, а навигация должна быть
+        this.addNavigation();
+      }
+    }
+
+    if (this.calendar.options.header) {
+      this.addHeader();
+    }
+
+    if (this.calendar.options.sidebar) {
+      this.addSidebar();
+    }
+
+    this.addDays();
+
+    if (this.dataLoaded) {
+      this.addJsonEvents();
+    }
+  }
+
+  addJsonEvents() {
+    let currentDays = document.querySelectorAll('.event-calendar__day');
+
+    for (let i = 0; i < this.calendar.model.length; i++) {
+      // Добавляет события к дням
+      for (let n = 0; n < this.DAYS_COUNT; n++) {
+        let evDate = new Date(
+            new Date(this.calendar.model[i].datetime).getFullYear(),
+            new Date(this.calendar.model[i].datetime).getMonth(),
+            new Date(this.calendar.model[i].datetime).getDate()
+        );
+        let toDate = this.daysList[n].date;
+
+        if (evDate.getTime() === toDate.getTime()) {
+          const day = currentDays[n];
+          const inner = day.querySelector('.event-calendar__events');
+
+          day.classList.add('event-calendar__day--event');
+          day.setAttribute('tabindex', '0');
+
+          let eventElement = createElement(createDayEventTemplate(this.calendar.model[i]));
+          renderElement(inner, eventElement);
+        }
+      }
+
+      if (this.calendar.options.sidebar.showEventsInfo) {
+        // Добавляет информацию о событиях в боковом меню
+        for (let j = 0; j < this.currentMonths.length; j++) {
+          let monthObj = this.currentMonths[j];
+          monthObj.eventsCount = 0;
+
+          for (let n = 0; n < this.calendar.model.length; n++) {
+            let evDate = new Date(
+                new Date(this.calendar.model[n].datetime).getFullYear(),
+                new Date(this.calendar.model[n].datetime).getMonth()
+            );
+            let toDate = new Date(this.currentMonths[j].date);
+
+            if (evDate.getTime() === toDate.getTime()) {
+              monthObj.eventsCount++;
+              const monthElement = this.element.querySelector(`[data-idx='${j}']`);
+              monthElement.setAttribute('data-event-count', monthObj.eventsCount);
+              monthElement.classList.add('event-calendar__month--event');
+            }
+          }
+        }
+      }
+    }
+  }
+
+  createCalendar() {
+    // Метод, который совершает первичную отрисовку
+    if (this.initialized) {
+      return;
+    }
+
+    this.initialized = true;
+    this.element.innerHTML = null;
+    this.calendarElement = createElement(createCalendarTemplate());
+
+    renderElement(this.element, this.calendarElement);
+    this.mainSection = this.element.querySelector('.event-calendar__main');
+    this.changeCalendar(this.calendar);
+    this.getEvents();
+    this.addListener();
+  }
+  /* --== METHODS END ==-- */
+
+  /* --== LISTENERS START ==-- */
+  onMouseOver(evt) {
+    this.offsetEventsTooltip(evt);
+
+    if (this.calendar.options.addActiveClassOnHoverEvent) {
+      this.onEventDayHover(evt);
+    }
+  }
+
   onEventDayHover(evt) {
     const eventDay = evt.target.closest('.event-calendar__day--event');
 
@@ -511,19 +420,6 @@ export class CalendarLayout {
     this.resetOffsetEventsTooltip(evt);
   }
 
-  resetOffsetEventsTooltip(evt) {
-    const eventDay = evt.target.closest('.event-calendar__day--event');
-
-    if (!eventDay) {
-      return;
-    }
-
-    const eventsElement = eventDay.querySelector('.event-calendar__events');
-
-    eventsElement.style.width = null;
-    eventsElement.style.left = null;
-  }
-
   onEventDayHoverBlur(evt) {
     const eventDay = evt.target.closest('.event-calendar__day--event');
 
@@ -532,13 +428,6 @@ export class CalendarLayout {
     }
 
     eventDay.classList.remove('is-hover');
-  }
-
-  onClick(evt) {
-    if (this.calendar.options.addActiveClassOnClickEvent) {
-      this.onEventDayClick(evt);
-    }
-    this.onNavArrowsClick(evt);
   }
 
   onSidebarMonthClick(evt) {
@@ -608,82 +497,19 @@ export class CalendarLayout {
     this.changeCalendar(this.calendar, adjuster);
   }
 
+  onClick(evt) {
+    if (this.calendar.options.addActiveClassOnClickEvent) {
+      this.onEventDayClick(evt);
+    }
+    this.onNavArrowsClick(evt);
+  }
+
   onLoadEvents() {
     this.dataLoaded = true;
-    this.addDayEvents();
-
-    if (this.calendar.options.sidebar) {
-      // Добавляет логику отображения событий в сайдбаре
-      this.addSidebarEvents();
-    }
+    this.addJsonEvents();
 
     // Обновляет состояние календаря при загрузке новых событий не меняя выбранный месяц
     this.changeCalendar(this.calendar, 0);
   }
-
-  _nextMonth() {
-    this.changeCalendar(this.calendar, 1);
-  }
-
-  _prevMonth() {
-    this.changeCalendar(this.calendar, -1);
-  }
-
-  _nextYear() {
-    this.changeCalendar(this.calendar, 12);
-  }
-
-  _prevYear() {
-    this.changeCalendar(this.calendar, -12);
-  }
-
-  _goDate(month, year) {
-    const currMonth = this.calendar.selected.month;
-    const currYear = this.calendar.selected.year;
-
-    month = typeof Number(month) === 'number' ? Number(month) : currMonth;
-    year = typeof Number(year) === 'number' ? Number(year) : currYear;
-
-    let adj = 0;
-
-    if (month >= currMonth) {
-      adj += month - currMonth - 1;
-    } else {
-      adj += (currMonth - month + 1) * -1;
-    }
-
-    if (year >= currYear) {
-      adj += (year - currYear) * 12;
-    } else {
-      adj += (currYear - year) * -12;
-    }
-
-    if (isNaN(adj)) {
-      return;
-    }
-
-    this.changeCalendar(this.calendar, adj);
-  }
-
-  _setLocale(code) {
-    this._calendarLocale = code;
-    this.isChangeLocale = true;
-    this.changeCalendar(this.calendar);
-  }
-
-  _createElement(props) {
-    const tag = props.tagName || 'div';
-    const selector = props.className;
-    const element = document.createElement(tag);
-
-    if (selector) {
-      if (Array.isArray(selector)) {
-        element.classList.add(...selector);
-      } else {
-        element.classList.add(selector);
-      }
-    }
-
-    return element;
-  }
+  /* --== LISTENERS END ==-- */
 }

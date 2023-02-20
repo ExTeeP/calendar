@@ -1,4 +1,4 @@
-import {EventCalendar} from './event-calendar.js';
+import {EventCalendar} from './calendar/event-calendar.js';
 
 const initEventCalendar = () => {
   const calendarElement = document.querySelector('[data-event-calendar]');

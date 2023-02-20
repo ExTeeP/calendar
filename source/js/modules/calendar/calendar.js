@@ -26,19 +26,6 @@ export class Calendar {
       addActiveClassOnHoverEvent: false,
       // Добавляет класс is-active при клике на день с событием(возможно будет нужно для доп. стилизации и тд.)
       addActiveClassOnClickEvent: false,
-      eventItemTemplate: (jsonContent) => {
-        const fragment = new DocumentFragment();
-        const {title, body} = jsonContent;
-
-        const titleElement = document.createElement('span');
-        titleElement.textContent = title;
-
-        const bodyElement = document.createTextNode(body);
-
-        fragment.append(titleElement);
-        fragment.append(bodyElement);
-        return fragment;
-      },
     }, options);
 
     if ((this.options.header && typeof this.options.header === 'object') || Boolean(this.options.header)) {
@@ -84,8 +71,8 @@ export class Calendar {
     this.selected = date || this.today;
     this.today.month = this.today.getMonth();
     this.today.year = this.today.getFullYear();
-    this.selected.month = this.selected.getMonth();
     this.selected.year = this.selected.getFullYear();
+    this.selected.month = this.selected.getMonth();
     this.selected.days = new Date(this.selected.year, this.selected.month + 1, 0).getDate();
     this.prev = new Date(this.selected.year, (this.selected.month - 1), 1);
     if (this.selected.month === 0) {
