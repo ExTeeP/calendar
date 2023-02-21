@@ -326,7 +326,9 @@ export class CalendarLayout {
     }
   }
 
+
   addJsonEvents() {
+    // TODO НАЙТИ РЕШЕНИЕ ДЛЯ ОПТИМИЗАЦИИ
     let currentDays = document.querySelectorAll('.event-calendar__day');
 
     for (let i = 0; i < this.calendar.model.length; i++) {
