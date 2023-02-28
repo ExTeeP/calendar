@@ -67,7 +67,11 @@ export class Calendar {
       }, options.navigation);
     }
 
-    this.today = new Date();
+    this.today = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        new Date().getDate()
+    );
     this.selected = date || this.today;
     this.today.month = this.today.getMonth();
     this.today.year = this.today.getFullYear();

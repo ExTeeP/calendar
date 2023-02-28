@@ -18,7 +18,7 @@ const createDayItemTemplate = (props = {}) => {
   const isCurrent = props.isCurrent ? 'event-calendar__day--current' : '';
   const isWeekend = props.isWeekend ? 'event-calendar__day--weekend' : '';
   const isToday = props.isToday ? 'event-calendar__day--today' : '';
-  const dayNumber = props.dayNumber || '';
+  const dayNumber = props.date.getDate() || '';
 
   return (`
     <li class="event-calendar__day ${isPrev} ${isNext} ${isCurrent} ${isWeekend} ${isToday}">

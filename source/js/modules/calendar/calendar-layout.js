@@ -45,22 +45,26 @@ export class CalendarLayout {
     renderElement(this.mainSection, headerElement);
   }
 
+  headerSoftChange() {
+    let monthLabelElement = this.element.querySelector('.event-calendar__month');
+    let yearLabelElement = this.element.querySelector('.event-calendar__year');
+
+    if (monthLabelElement && this.calendar.options.header.showMonth) {
+      monthLabelElement.innerText = this.calendar.monthsLocale[this.calendar.selected.month];
+    }
+
+    if (yearLabelElement && this.calendar.options.header.showYear) {
+      yearLabelElement.innerText = this.calendar.selected.year;
+    }
+  }
+
   addHeader() {
     let container = this.mainSection;
     let headerElement = this.element.querySelector('.event-calendar__header');
 
     // Если хедер уже существует просто обновляется текстовый контент
     if (headerElement) {
-      let monthLabelElement = this.element.querySelector('.event-calendar__month');
-      let yearLabelElement = this.element.querySelector('.event-calendar__year');
-
-      if (monthLabelElement && this.calendar.options.header.showMonth) {
-        monthLabelElement.innerText = this.calendar.monthsLocale[this.calendar.selected.month];
-      }
-
-      if (yearLabelElement && this.calendar.options.header.showYear) {
-        yearLabelElement.innerText = this.calendar.selected.year;
-      }
+      this.headerSoftChange();
       return;
     }
 
@@ -108,9 +112,9 @@ export class CalendarLayout {
         isCurrent: false,
         isWeekend: false,
         isToday: false,
-        dayNumber: 0,
         date: new Date(),
       };
+      let dayNumber = 0;
 
       const isPrevDay = index < this.calendar.selected.firstDay;
       const isCurrentDay = !isPrevDay && index < (this.calendar.selected.firstDay + this.calendar.selected.days);
@@ -118,25 +122,21 @@ export class CalendarLayout {
       // Дни предыдущего месяца
       if (isPrevDay) {
         daySetup.isPrev = true;
-        daySetup.dayNumber = (this.calendar.prev.days - this.calendar.selected.firstDay) + (index + 1);
-        daySetup.date = new Date(this.calendar.selected.year, this.calendar.selected.month - 1, daySetup.dayNumber);
+        dayNumber = (this.calendar.prev.days - this.calendar.selected.firstDay) + (index + 1);
+        daySetup.date = new Date(this.calendar.selected.year, this.calendar.selected.month - 1, dayNumber);
       } else if (isCurrentDay) {
         daySetup.isCurrent = true;
-        daySetup.dayNumber = (index + 1) - this.calendar.selected.firstDay;
-        daySetup.date = new Date(this.calendar.selected.year, this.calendar.selected.month, daySetup.dayNumber);
-
-        // Сегодняшний день
-        if (
-          daySetup.dayNumber === this.calendar.today.getDate() &&
-          this.calendar.selected.month === this.calendar.today.month &&
-          this.calendar.selected.year === this.calendar.today.year
-        ) {
-          daySetup.isToday = true;
-        }
+        dayNumber = (index + 1) - this.calendar.selected.firstDay;
+        daySetup.date = new Date(this.calendar.selected.year, this.calendar.selected.month, dayNumber);
       } else {
         daySetup.isNext = true;
-        daySetup.dayNumber = (index + 1) - (this.calendar.selected.firstDay + this.calendar.selected.days);
-        daySetup.date = new Date(this.calendar.selected.year, this.calendar.selected.month + 1, daySetup.dayNumber);
+        dayNumber = (index + 1) - (this.calendar.selected.firstDay + this.calendar.selected.days);
+        daySetup.date = new Date(this.calendar.selected.year, this.calendar.selected.month + 1, dayNumber);
+      }
+
+      // Сегодняшний день
+      if (daySetup.date.getTime() === this.calendar.today.getTime()) {
+        daySetup.isToday = true;
       }
 
       if (
